@@ -20,10 +20,16 @@ bool AToolBase::InstallSocket(const FSocketSpecification& NewSocket, FText& OutM
 		return false;
 	}
 
+	if (!FMath::IsFinite(NewSocket.SocketSizeMm) || NewSocket.SocketSizeMm <= 0.0f)
+	{
+		OutMessage = FText::FromString(TEXT("Invalid socket size."));
+		return false;
+	}
+
 	InstalledSocket = NewSocket;
 	bHasSocketInstalled = true;
 	InstalledSocketSizeMm = NewSocket.SocketSizeMm;
-	OutMessage = FText::FromString(FString::Printf(TEXT("Installed %.1fmm socket on tool."), InstalledSocketSizeMm));
+	OutMessage = FText::FromString(FString::Printf(TEXT("Installed %.1f mm socket on tool."), InstalledSocketSizeMm));
 	return true;
 }
 
@@ -40,23 +46,42 @@ bool AToolBase::CanOperateOnFastener(const FFastenerSpecification& FastenerSpec,
 		Category != EToolCategory::TorqueWrench && 
 		Category != EToolCategory::ImpactGun)
 	{
-		OutFailureReason = FText::FromString(TEXT("Selected tool is not a fastener tightening/loosening tool."));
+		OutFailureReason = FText::FromString(TEXT("Selected tool cannot tighten or loosen fasteners."));
 		return false;
 	}
 
-	// For socket tools, socket must be mounted
-	if (Category != EToolCategory::HandWrench && !bHasSocketInstalled)
+	const bool bRequiresSocket = Category != EToolCategory::HandWrench;
+
+	if (bRequiresSocket && !bHasSocketInstalled)
 	{
-		OutFailureReason = FText::FromString(TEXT("No socket installed on tool anvil! Select and attach a socket first."));
+		OutFailureReason = FText::FromString(TEXT("No socket installed. Attach a compatible socket first."));
+		return false;
+	}
+
+	if (bHasSocketInstalled && InstalledSocket.DriveSize != ToolDriveSize)
+	{
+		OutFailureReason = FText::FromString(TEXT("Socket drive size does not match the tool anvil."));
+		return false;
+	}
+
+	if (!FMath::IsFinite(FastenerSpec.SocketSizeMm) || FastenerSpec.SocketSizeMm <= 0.0f)
+	{
+		OutFailureReason = FText::FromString(TEXT("Fastener has an invalid required socket size."));
 		return false;
 	}
 
 	const float EffectiveSocketSizeMm = bHasSocketInstalled ? InstalledSocket.SocketSizeMm : InstalledSocketSizeMm;
 
+	if (!FMath::IsFinite(EffectiveSocketSizeMm) || EffectiveSocketSizeMm <= 0.0f)
+	{
+		OutFailureReason = FText::FromString(TEXT("No valid tool head size is configured."));
+		return false;
+	}
+
 	if (FMath::Abs(EffectiveSocketSizeMm - FastenerSpec.SocketSizeMm) > 0.1f)
 	{
 		OutFailureReason = FText::FromString(FString::Printf(
-			TEXT("Incorrect socket: this fastener requires a compatible %.1f mm hex socket (installed: %.1f mm)."), 
+			TEXT("Incorrect socket: requires %.1f mm (installed: %.1f mm)."), 
 			FastenerSpec.SocketSizeMm, 
 			EffectiveSocketSizeMm));
 		return false;
@@ -64,10 +89,10 @@ bool AToolBase::CanOperateOnFastener(const FFastenerSpecification& FastenerSpec,
 
 	if (bHasSocketInstalled && InstalledSocket.Profile != FastenerSpec.DriveType)
 	{
-		OutFailureReason = FText::FromString(TEXT("Fastener drive head profile mismatch! (e.g. Hex vs Torx)."));
+		OutFailureReason = FText::FromString(TEXT("Fastener head profile mismatch (Hex, Torx, etc.)."));
 		return false;
 	}
 
-	OutFailureReason = FText::FromString(TEXT("Tool is compatible."));
+	OutFailureReason = FText::FromString(TEXT("Tool is compatible with the selected fastener."));
 	return true;
 }
