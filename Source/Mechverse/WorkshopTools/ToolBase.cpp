@@ -1,4 +1,4 @@
-#include "WorkshopTools/ToolBase.h"
+#include "ToolBase.h"
 
 AToolBase::AToolBase()
 	: ToolName(FText::FromString(TEXT("Standard 1/2\" Torque Wrench")))

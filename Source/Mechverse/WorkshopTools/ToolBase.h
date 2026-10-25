@@ -13,6 +13,21 @@ enum class EDriveSize : uint8
 	Drive1_2Inch UMETA(DisplayName = "1/2\" Square Drive")
 };
 
+UENUM(BlueprintType)
+enum class EToolCategory : uint8
+{
+	HandWrench UMETA(DisplayName = "Hand Spanner / Wrench"),
+	RatchetSocket UMETA(DisplayName = "Ratchet & Socket"),
+	TorqueWrench UMETA(DisplayName = "Torque Wrench"),
+	ImpactGun UMETA(DisplayName = "Pneumatic / Cordless Impact Gun"),
+	BreakerBar UMETA(DisplayName = "Breaker Bar"),
+	Diagnostic UMETA(DisplayName = "Diagnostic Tool"),
+	Cleaning UMETA(DisplayName = "Cleaning Tool"),
+	Bodywork UMETA(DisplayName = "Bodywork & Dent Tool"),
+	Welding UMETA(DisplayName = "Welding & Fabrication Tool"),
+	Painting UMETA(DisplayName = "Paint Spray Gun")
+};
+
 USTRUCT(BlueprintType)
 struct FSocketSpecification
 {

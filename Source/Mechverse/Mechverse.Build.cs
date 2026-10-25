@@ -18,6 +18,10 @@ public class Mechverse : ModuleRules
 			"PhysicsCore"
 		});
 
+		PublicIncludePaths.AddRange(new string[] {
+			ModuleDirectory
+		});
+
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 	}
 }
