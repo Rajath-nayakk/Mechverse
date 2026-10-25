@@ -3,7 +3,7 @@ import { SOCKET_SET, AVAILABLE_TOOLS, validateSocketCompatibility, advanceFasten
 import { CleaningSimulation } from './cleaning-system.js';
 
 export class InteractionManager {
-  constructor(camera, scene, domElement, components, vehicleModel, conditionSystem, onComponentSelected, showToast) {
+  constructor(camera, scene, domElement, components, vehicleModel, conditionSystem, onComponentSelected, showToast, engineSim = null, restoSystem = null) {
     this.camera = camera;
     this.scene = scene;
     this.domElement = domElement;
@@ -12,6 +12,8 @@ export class InteractionManager {
     this.conditionSystem = conditionSystem;
     this.onComponentSelected = onComponentSelected;
     this.showToast = showToast;
+    this.engineSim = engineSim;
+    this.restoSystem = restoSystem;
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -136,6 +138,51 @@ export class InteractionManager {
     }
     this.onComponentSelected(comp);
 
+    // Check for interactive opening panels
+    if (compId === 'bonnet_hood') {
+      const isOpen = this.vehicleModel.toggleBonnet();
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Bonnet opened (Engine bay accessible).' : 'Bonnet closed and latched.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'door_front_left') {
+      const isOpen = this.vehicleModel.toggleDoor('doorFL');
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Driver door opened.' : 'Driver door closed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'door_front_right') {
+      const isOpen = this.vehicleModel.toggleDoor('doorFR');
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Passenger door opened.' : 'Passenger door closed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'door_rear_left') {
+      const isOpen = this.vehicleModel.toggleDoor('doorRL');
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Rear left door opened.' : 'Rear left door closed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'door_rear_right') {
+      const isOpen = this.vehicleModel.toggleDoor('doorRR');
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Rear right door opened.' : 'Rear right door closed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'boot_trunk') {
+      const isOpen = this.vehicleModel.toggleTrunk();
+      comp.isOpen = isOpen;
+      this.showToast(isOpen ? 'Rear trunk opened.' : 'Rear trunk closed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    } else if (compId === 'engine_oil_fill_cap') {
+      comp.isOpen = !comp.isOpen;
+      if (this.engineSim) this.engineSim.isOilFillCapOpen = comp.isOpen;
+      this.showToast(comp.isOpen ? 'Oil filler cap removed. Ready for oil filling.' : 'Oil filler cap threaded on and sealed.', 'info');
+      this.onComponentSelected(comp);
+      return;
+    }
+
     // Apply immediate tool action if specific tool selected
     this.applyActiveTool(comp);
   }
@@ -150,7 +197,55 @@ export class InteractionManager {
       this.pullDent(comp);
     } else if (tool.id === 'TOOL_FUEL_NOZZLE') {
       this.refuelVehicle(comp);
+    } else if (tool.id === 'TOOL_COMPRESSION_TESTER') {
+      this.runCompressionTest(1);
+    } else if (tool.id === 'TOOL_LEAKDOWN_TESTER') {
+      this.runLeakdownTest(1);
+    } else if (tool.id === 'TOOL_WELDING_GUN') {
+      this.runWelding(comp);
+    } else if (tool.id === 'TOOL_SPRAY_GUN') {
+      this.runSprayPaint(comp);
+    } else if (tool.id === 'TOOL_WIRE_BRUSH_GRINDER') {
+      this.runGrindRust(comp);
     }
+  }
+
+  runCompressionTest(cylinder = 1) {
+    if (!this.engineSim) return;
+    this.engineSim.connectCompressionTester(cylinder, false);
+    const res = this.engineSim.crankCompressionTest();
+    if (res.success) {
+      this.showToast(`Cylinder ${cylinder} Compression: ${res.pressurePsi.toFixed(1)} PSI (Spec: ${res.specPsi} PSI) - ${res.passed ? 'PASSED' : 'LOW COMPRESSION'}`, res.passed ? 'success' : 'error');
+    }
+  }
+
+  runLeakdownTest(cylinder = 1) {
+    if (!this.engineSim) return;
+    const res = this.engineSim.connectLeakdownTester(cylinder);
+    this.showToast(`Cylinder ${cylinder} Leak-Down: ${res.leakagePercent.toFixed(1)}% (Leak Path: ${res.leakLocation}) - ${res.isAcceptable ? 'ACCEPTABLE' : 'LEAK DETECTED'}`, res.isAcceptable ? 'success' : 'warning');
+  }
+
+  runWelding(comp) {
+    if (!this.restoSystem) return;
+    const res = this.restoSystem.weldJoint(comp.id);
+    this.showToast(res.message, res.success && res.isStructurallySound ? 'success' : 'warning');
+  }
+
+  runSprayPaint(comp) {
+    if (!this.restoSystem) return;
+    const res = this.restoSystem.applyPaint(comp.id, 'BASECOAT');
+    if (res.success) {
+      this.showToast(`Applied paint basecoat to ${comp.name}.`, 'success');
+      this.vehicleModel.updateComponentVisuals(comp);
+    } else {
+      this.showToast(res.error, 'error');
+    }
+  }
+
+  runGrindRust(comp) {
+    if (!this.restoSystem) return;
+    const res = this.restoSystem.grindRust(comp.id, 2.0);
+    this.showToast(res.message, 'success');
   }
 
   cleanTargetSurface(surfaceId, toolId) {
@@ -243,6 +338,11 @@ export class InteractionManager {
     const advance = advanceFastenerThread(comp.fastener, -turns);
     this.showToast(advance.message, advance.isDisengaged ? 'success' : 'info');
 
+    if (comp.id === 'oil_drain_plug' && advance.isDisengaged && this.engineSim) {
+      this.engineSim.isDrainPlugInstalled = false;
+      this.showToast('Drain plug removed! Engine oil flowing into collection drum.', 'warning');
+    }
+
     this.onComponentSelected(comp);
   }
 
@@ -259,6 +359,10 @@ export class InteractionManager {
 
     const advance = advanceFastenerThread(comp.fastener, turns);
     this.showToast(advance.message, 'info');
+
+    if (comp.id === 'oil_drain_plug' && this.engineSim) {
+      this.engineSim.isDrainPlugInstalled = true;
+    }
 
     this.onComponentSelected(comp);
   }

@@ -10,6 +10,10 @@ import { VehicleElectricalSystem } from './electrical-system.js';
 import { DigitalMultimeter, MULTIMETER_MODES, METER_LEAD_JACKS, TEST_POINTS } from './multimeter-system.js';
 import { ElectricalFaultManager, FAULT_TYPES } from './electrical-faults.js';
 import { ElectricalMissionManager, MISSIONS } from './electrical-missions.js';
+import { EngineSimulation, MECHANICAL_FAULTS } from './engine-simulation.js';
+import { PanelRestorationSystem, PAINT_LAYERS } from './restoration-system.js';
+import { PersistenceSystem } from './persistence-system.js';
+import { WorkshopControls } from './workshop-controls.js';
 
 // Setup Application State
 const components = JSON.parse(JSON.stringify(INITIAL_COMPONENTS));
@@ -18,6 +22,9 @@ const electricalSystem = new VehicleElectricalSystem();
 const faultManager = new ElectricalFaultManager(electricalSystem);
 const multimeter = new DigitalMultimeter(electricalSystem);
 const missionManager = new ElectricalMissionManager(electricalSystem, faultManager, multimeter);
+const engineSim = new EngineSimulation();
+const restoSystem = new PanelRestorationSystem();
+const persistence = new PersistenceSystem();
 
 // Canvas & Three.js Renderer
 const container = document.getElementById('canvas-container');
@@ -43,6 +50,9 @@ controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going beneath floor
 controls.minDistance = 0.8;
 controls.maxDistance = 14.0;
 controls.target.set(0, 1.0, 0);
+
+// Workshop Dual-Mode Controls (Orbit + First-Person Walk)
+const workshopControls = new WorkshopControls(camera, renderer.domElement, controls);
 
 // Initialize 3D Garage & Vehicle
 const garage = new GarageWorld(scene);
@@ -72,7 +82,9 @@ const interaction = new InteractionManager(
   vehicle,
   conditionSystem,
   updateInspectionUI,
-  showToast
+  showToast,
+  engineSim,
+  restoSystem
 );
 
 // UI DOM References
@@ -286,6 +298,117 @@ function buildDynamicActions(comp) {
     btnFuel.innerHTML = `<span>⛽</span> Operate Fuel Dispenser (+10L)`;
     btnFuel.onclick = () => interaction.refuelVehicle(comp);
     dynamicActionsEl.appendChild(btnFuel);
+  }
+
+  // Opening Panels & Mechanisms Actions
+  if (comp.id === 'bonnet_hood') {
+    const btnBonnet = document.createElement('button');
+    btnBonnet.className = 'action-btn';
+    btnBonnet.innerHTML = `<span>🚘</span> ${vehicle.hinges.bonnet.isOpen ? 'Close Engine Bonnet' : 'Open Engine Bonnet (Engine Bay Access)'}`;
+    btnBonnet.onclick = () => {
+      const open = vehicle.toggleBonnet();
+      comp.isOpen = open;
+      showToast(open ? 'Bonnet opened.' : 'Bonnet closed and latched.', 'info');
+      buildDynamicActions(comp);
+    };
+    dynamicActionsEl.appendChild(btnBonnet);
+  }
+
+  if (comp.id === 'door_front_left' || comp.id === 'door_front_right') {
+    const doorKey = comp.id === 'door_front_left' ? 'doorFL' : 'doorFR';
+    const btnDoor = document.createElement('button');
+    btnDoor.className = 'action-btn';
+    btnDoor.innerHTML = `<span>🚪</span> ${vehicle.hinges[doorKey].isOpen ? 'Close Door' : 'Open Door (Cabin Access)'}`;
+    btnDoor.onclick = () => {
+      const open = vehicle.toggleDoor(doorKey);
+      comp.isOpen = open;
+      showToast(open ? 'Door opened.' : 'Door closed.', 'info');
+      buildDynamicActions(comp);
+    };
+    dynamicActionsEl.appendChild(btnDoor);
+  }
+
+  if (comp.id === 'boot_trunk') {
+    const btnTrunk = document.createElement('button');
+    btnTrunk.className = 'action-btn';
+    btnTrunk.innerHTML = `<span>📦</span> ${vehicle.hinges.trunk.isOpen ? 'Close Rear Trunk' : 'Open Rear Trunk'}`;
+    btnTrunk.onclick = () => {
+      const open = vehicle.toggleTrunk();
+      comp.isOpen = open;
+      showToast(open ? 'Trunk opened.' : 'Trunk closed.', 'info');
+      buildDynamicActions(comp);
+    };
+    dynamicActionsEl.appendChild(btnTrunk);
+  }
+
+  if (comp.id === 'engine_oil_fill_cap') {
+    const btnCap = document.createElement('button');
+    btnCap.className = 'action-btn';
+    btnCap.innerHTML = `<span>🛢️</span> ${comp.isOpen ? 'Thread On & Seal Oil Cap' : 'Remove Engine Oil Filler Cap'}`;
+    btnCap.onclick = () => {
+      comp.isOpen = !comp.isOpen;
+      engineSim.isOilFillCapOpen = comp.isOpen;
+      showToast(comp.isOpen ? 'Oil filler cap removed.' : 'Oil filler cap installed and sealed.', 'info');
+      buildDynamicActions(comp);
+    };
+    dynamicActionsEl.appendChild(btnCap);
+
+    if (comp.isOpen) {
+      const btnPour = document.createElement('button');
+      btnPour.className = 'action-btn';
+      btnPour.innerHTML = `<span>➕</span> Pour 1.0L 5W-30 Full Synthetic Oil (${engineSim.engineOilLiters.toFixed(1)} / ${engineSim.specs.oilCapacityLiters} L)`;
+      btnPour.onclick = () => {
+        const refill = engineSim.refillOil(1.0);
+        if (refill.success) {
+          showToast(`Added 1.0L oil. Current level: ${refill.currentLevelLiters.toFixed(1)}L (Condition: ${refill.oilCondition.toFixed(0)}%).`, 'success');
+        } else {
+          showToast(refill.error, 'error');
+        }
+        buildDynamicActions(comp);
+      };
+      dynamicActionsEl.appendChild(btnPour);
+    }
+  }
+
+  // Diagnostics & Restoration Active Tool Buttons
+  if (activeTool && activeTool.id === 'TOOL_COMPRESSION_TESTER') {
+    const btnComp = document.createElement('button');
+    btnComp.className = 'action-btn';
+    btnComp.style.background = 'rgba(57, 197, 187, 0.15)';
+    btnComp.style.borderColor = '#39c5bb';
+    btnComp.innerHTML = `<span>⏱️</span> Run 4-Pulse Compression Test`;
+    btnComp.onclick = () => interaction.runCompressionTest(1);
+    dynamicActionsEl.appendChild(btnComp);
+  } else if (activeTool && activeTool.id === 'TOOL_LEAKDOWN_TESTER') {
+    const btnLeak = document.createElement('button');
+    btnLeak.className = 'action-btn';
+    btnLeak.style.background = 'rgba(57, 197, 187, 0.15)';
+    btnLeak.style.borderColor = '#39c5bb';
+    btnLeak.innerHTML = `<span>💨</span> Run 100 PSI Cylinder Leak-Down Test`;
+    btnLeak.onclick = () => interaction.runLeakdownTest(1);
+    dynamicActionsEl.appendChild(btnLeak);
+  } else if (activeTool && activeTool.id === 'TOOL_WELDING_GUN') {
+    const btnWeld = document.createElement('button');
+    btnWeld.className = 'action-btn';
+    btnWeld.style.background = 'rgba(210, 153, 34, 0.15)';
+    btnWeld.style.borderColor = '#d29922';
+    btnWeld.innerHTML = `<span>⚡</span> MIG Weld Seam / Bracket on ${comp.name}`;
+    btnWeld.onclick = () => interaction.runWelding(comp);
+    dynamicActionsEl.appendChild(btnWeld);
+  } else if (activeTool && activeTool.id === 'TOOL_SPRAY_GUN') {
+    const btnPaint = document.createElement('button');
+    btnPaint.className = 'action-btn';
+    btnPaint.style.background = 'rgba(188, 140, 255, 0.15)';
+    btnPaint.style.borderColor = '#bc8cff';
+    btnPaint.innerHTML = `<span>🎨</span> Spray Refinish Basecoat on ${comp.name}`;
+    btnPaint.onclick = () => interaction.runSprayPaint(comp);
+    dynamicActionsEl.appendChild(btnPaint);
+  } else if (activeTool && activeTool.id === 'TOOL_WIRE_BRUSH_GRINDER') {
+    const btnGrind = document.createElement('button');
+    btnGrind.className = 'action-btn';
+    btnGrind.innerHTML = `<span>⚙️</span> Grind Rust to Bare Metal on ${comp.name}`;
+    btnGrind.onclick = () => interaction.runGrindRust(comp);
+    dynamicActionsEl.appendChild(btnGrind);
   }
 
   // Electrical Component Multimeter Probing Action
@@ -744,18 +867,178 @@ initDMMControls();
 initCockpitControls();
 initMissionsUI();
 
+// =========================================================
+// VEHICLE BODY MECHANISMS & VIEW CONTROLS
+// =========================================================
+const btnBonnet = document.getElementById('btn-toggle-bonnet');
+if (btnBonnet) {
+  btnBonnet.addEventListener('click', () => {
+    const open = vehicle.toggleBonnet();
+    const bonnetComp = components.find(c => c.id === 'bonnet_hood');
+    if (bonnetComp) bonnetComp.isOpen = open;
+    showToast(open ? 'Bonnet opened (Engine bay accessible).' : 'Bonnet closed and latched.', 'info');
+    if (interaction.selectedComponent?.id === 'bonnet_hood') updateInspectionUI(bonnetComp);
+  });
+}
+
+const btnTrunk = document.getElementById('btn-toggle-trunk');
+if (btnTrunk) {
+  btnTrunk.addEventListener('click', () => {
+    const open = vehicle.toggleTrunk();
+    const trunkComp = components.find(c => c.id === 'boot_trunk');
+    if (trunkComp) trunkComp.isOpen = open;
+    showToast(open ? 'Rear trunk opened.' : 'Rear trunk closed.', 'info');
+    if (interaction.selectedComponent?.id === 'boot_trunk') updateInspectionUI(trunkComp);
+  });
+}
+
+const btnDoorFL = document.getElementById('btn-toggle-door-fl');
+if (btnDoorFL) {
+  btnDoorFL.addEventListener('click', () => {
+    const open = vehicle.toggleDoor('doorFL');
+    const doorComp = components.find(c => c.id === 'door_front_left');
+    if (doorComp) doorComp.isOpen = open;
+    showToast(open ? 'Driver door opened.' : 'Driver door closed.', 'info');
+    if (interaction.selectedComponent?.id === 'door_front_left') updateInspectionUI(doorComp);
+  });
+}
+
+const btnDoorFR = document.getElementById('btn-toggle-door-fr');
+if (btnDoorFR) {
+  btnDoorFR.addEventListener('click', () => {
+    const open = vehicle.toggleDoor('doorFR');
+    const doorComp = components.find(c => c.id === 'door_front_right');
+    if (doorComp) doorComp.isOpen = open;
+    showToast(open ? 'Passenger door opened.' : 'Passenger door closed.', 'info');
+    if (interaction.selectedComponent?.id === 'door_front_right') updateInspectionUI(doorComp);
+  });
+}
+
+const btnCutaway = document.getElementById('btn-toggle-cutaway');
+if (btnCutaway) {
+  btnCutaway.addEventListener('click', () => {
+    const cutaway = vehicle.toggleCutawayMode();
+    btnCutaway.style.background = cutaway ? 'rgba(57, 197, 187, 0.3)' : '';
+    showToast(cutaway ? 'Engine block cutaway active: cylinders & reciprocating pistons visible.' : 'Cutaway mode disabled: solid cast-iron block restored.', 'info');
+  });
+}
+
+const btnCamView = document.getElementById('btn-toggle-camera-view');
+if (btnCamView) {
+  workshopControls.onModeChange = (mode) => {
+    btnCamView.innerHTML = mode === 'FIRST_PERSON' ? '🔄 Orbit View [V]' : '👁️ Walk View [V]';
+  };
+
+  btnCamView.addEventListener('click', () => {
+    const mode = workshopControls.toggleCameraMode();
+    showToast(mode === 'FIRST_PERSON' ? 'First-Person Walk Mode active (WASD + Right-Click look, Shift sprint, C crouch).' : 'Orbit Inspector Mode active.', 'info');
+  });
+}
+
+// =========================================================
+// WORKSHOP PERSISTENCE (SAVE / LOAD / RESET)
+// =========================================================
+const btnSave = document.getElementById('btn-save-garage');
+if (btnSave) {
+  btnSave.addEventListener('click', () => {
+    const res = persistence.saveGarageState({
+      liftHeight: garage.currentLiftHeight,
+      components: components.map(c => ({
+        id: c.id,
+        installed: c.installed,
+        cleanlinessPercentage: c.cleanlinessPercentage,
+        wearPercentage: c.wearPercentage,
+        fastener: c.fastener ? {
+          currentTorqueNm: c.fastener.currentTorqueNm,
+          currentEngagementMm: c.fastener.currentEngagementMm
+        } : null
+      })),
+      engine: engineSim,
+      restoration: restoSystem,
+      electricalFaults: Array.from(faultManager.activeFaults.keys()),
+      conditionScores: conditionSystem.state
+    });
+    showToast(`Workshop state saved (${res.sizeBytes} bytes).`, 'success');
+  });
+}
+
+const btnLoad = document.getElementById('btn-load-garage');
+if (btnLoad) {
+  btnLoad.addEventListener('click', () => {
+    const res = persistence.loadGarageState();
+    if (!res.success) {
+      showToast(res.error, 'error');
+      return;
+    }
+    const data = res.data;
+    if (data.liftHeight !== undefined) {
+      garage.setLiftHeight(data.liftHeight);
+      document.getElementById('lift-height-display').textContent = `${data.liftHeight.toFixed(1)}m`;
+    }
+    if (data.components && Array.isArray(data.components)) {
+      data.components.forEach(savedComp => {
+        const live = components.find(c => c.id === savedComp.id);
+        if (live) {
+          live.installed = savedComp.installed;
+          live.cleanlinessPercentage = savedComp.cleanlinessPercentage;
+          live.wearPercentage = savedComp.wearPercentage;
+          if (live.fastener && savedComp.fastener) {
+            live.fastener.currentTorqueNm = savedComp.fastener.currentTorqueNm;
+            live.fastener.currentEngagementMm = savedComp.fastener.currentEngagementMm;
+          }
+          if (live.meshGroup) {
+            live.meshGroup.visible = live.installed;
+          }
+        }
+      });
+    }
+    if (data.engineState) {
+      engineSim.engineOilLiters = data.engineState.engineOilLiters;
+      engineSim.oilConditionPercent = data.engineState.oilConditionPercent;
+      engineSim.isDrainPlugInstalled = data.engineState.isDrainPlugInstalled;
+      engineSim.isOilFilterInstalled = data.engineState.isOilFilterInstalled;
+      engineSim.activeFaults = new Set(data.engineState.activeFaults || []);
+    }
+    if (data.restorationPanels && Array.isArray(data.restorationPanels)) {
+      data.restorationPanels.forEach(p => {
+        restoSystem.panelStates.set(p.panelId, p);
+      });
+    }
+    conditionSystem.updateFromComponents(components);
+    conditionSystem.updateElectricalCondition(electricalSystem, faultManager);
+    updateConditionHUD();
+    if (interaction.selectedComponent) updateInspectionUI(interaction.selectedComponent);
+    showToast('Workshop state restored from local save.', 'success');
+  });
+}
+
+const btnReset = document.getElementById('btn-reset-garage');
+if (btnReset) {
+  btnReset.addEventListener('click', () => {
+    if (confirm('Reset workshop, vehicle, and all repairs to factory default?')) {
+      persistence.clearSave();
+      location.reload();
+    }
+  });
+}
+
 // Main Animation Loop
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt = clock.getDelta();
 
-  handleKeyboardMovement(dt);
+  if (workshopControls.mode === 'ORBIT') {
+    handleKeyboardMovement(dt);
+  }
   garage.update(dt);
-  controls.update();
+  engineSim.update(dt);
+  vehicle.update(dt, engineSim);
+  workshopControls.update(dt);
 
   renderer.render(scene, camera);
 }
 
 animate();
 showToast('MECHVERSE Workshop Ready. Select tools & sockets to inspect and service components.', 'success');
+

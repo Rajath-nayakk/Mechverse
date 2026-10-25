@@ -24,8 +24,13 @@ export const AVAILABLE_TOOLS = [
   { id: 'TOOL_GLASS_CLEANER', name: 'Ammonia-Free Glass Cleaner', category: 'CLEANING' },
   { id: 'TOOL_VACUUM_CLEANER', name: 'Wet/Dry Shop Vacuum', category: 'CLEANING' },
   { id: 'TOOL_DENT_PULLER', name: 'Suction Dent Puller', category: 'BODYWORK' },
+  { id: 'TOOL_WIRE_BRUSH_GRINDER', name: 'Rotary Wire Wheel / Grinder', category: 'BODYWORK' },
+  { id: 'TOOL_WELDING_GUN', name: 'MIG / TIG Arc Welding Gun', category: 'FABRICATION' },
+  { id: 'TOOL_SPRAY_GUN', name: 'HVLP Paint Spray Gun', category: 'PAINTING' },
   { id: 'TOOL_FUEL_NOZZLE', name: 'Fuel Dispenser Nozzle', category: 'REFUELING' },
-  { id: 'TOOL_MULTIMETER', name: 'Digital Multimeter (DMM)', category: 'ELECTRICAL_DIAGNOSTIC' }
+  { id: 'TOOL_MULTIMETER', name: 'Digital Multimeter (DMM)', category: 'ELECTRICAL_DIAGNOSTIC' },
+  { id: 'TOOL_COMPRESSION_TESTER', name: 'Engine Cylinder Compression Tester', category: 'MECHANICAL_DIAGNOSTIC' },
+  { id: 'TOOL_LEAKDOWN_TESTER', name: 'Cylinder Differential Leak-Down Tester', category: 'MECHANICAL_DIAGNOSTIC' }
 ];
 
 export function validateSocketCompatibility(tool, socket, fastener) {

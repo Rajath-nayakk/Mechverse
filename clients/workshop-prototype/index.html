@@ -98,6 +98,26 @@
               <span class="tool-icon">📟</span>
               <span>Digital Multimeter (DMM)</span>
             </button>
+            <button class="tool-btn" data-tool="TOOL_COMPRESSION_TESTER">
+              <span class="tool-icon">⏱️</span>
+              <span>Cylinder Compression Gauge</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_LEAKDOWN_TESTER">
+              <span class="tool-icon">💨</span>
+              <span>Differential Leak-Down Gauge</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_WELDING_GUN">
+              <span class="tool-icon">⚡</span>
+              <span>MIG / TIG Arc Welding Gun</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_SPRAY_GUN">
+              <span class="tool-icon">🎨</span>
+              <span>HVLP Paint Spray Gun</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_WIRE_BRUSH_GRINDER">
+              <span class="tool-icon">⚙️</span>
+              <span>Rotary Rust Grinder</span>
+            </button>
           </div>
 
           <!-- Electrical Missions Toggle Button -->
@@ -118,6 +138,21 @@
           </div>
         </div>
 
+        <!-- Vehicle Body Mechanisms & View Controls -->
+        <div class="interactive-panel">
+          <div class="panel-header">Body Panels & Mechanisms</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px 0;">
+            <button id="btn-toggle-bonnet" class="btn-secondary" style="font-size: 11px; padding: 6px;">🚘 Bonnet</button>
+            <button id="btn-toggle-trunk" class="btn-secondary" style="font-size: 11px; padding: 6px;">📦 Trunk</button>
+            <button id="btn-toggle-door-fl" class="btn-secondary" style="font-size: 11px; padding: 6px;">🚪 Driver Door</button>
+            <button id="btn-toggle-door-fr" class="btn-secondary" style="font-size: 11px; padding: 6px;">🚪 Pass Door</button>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button id="btn-toggle-cutaway" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px;">🔍 Engine Cutaway</button>
+            <button id="btn-toggle-camera-view" class="btn-primary" style="flex: 1; font-size: 11px; padding: 6px;">👁️ Walk View [V]</button>
+          </div>
+        </div>
+
         <!-- Hydraulic Lift Controls -->
         <div class="interactive-panel">
           <div class="panel-header">Hydraulic Vehicle Lift</div>
@@ -132,14 +167,26 @@
           </div>
         </div>
 
+        <!-- Persistence & Save / Load System -->
+        <div class="interactive-panel" style="padding: 10px;">
+          <div class="panel-header" style="padding: 0 0 6px 0; border: none;">Workshop Persistence</div>
+          <div style="display: flex; gap: 6px;">
+            <button id="btn-save-garage" class="btn-secondary" style="flex: 1; font-size: 10px; padding: 5px;">💾 Save</button>
+            <button id="btn-load-garage" class="btn-secondary" style="flex: 1; font-size: 10px; padding: 5px;">📂 Load</button>
+            <button id="btn-reset-garage" class="btn-secondary" style="font-size: 10px; padding: 5px; color: var(--accent-red);">🔄 Reset</button>
+          </div>
+        </div>
+
         <!-- Controls Hint -->
         <div class="interactive-panel" style="padding: 12px;">
           <div class="panel-header" style="padding: 0 0 6px 0; border: none;">Navigation Controls</div>
           <div class="controls-hint" style="flex-direction: column; gap: 6px;">
-            <div><span class="key-tag">WASD</span> Pan workshop camera</div>
-            <div><span class="key-tag">Right-Click + Drag</span> Rotate around vehicle</div>
-            <div><span class="key-tag">Mouse Scroll</span> Zoom in / out</div>
-            <div><span class="key-tag">Left-Click</span> Select & inspect component</div>
+            <div><span class="key-tag">WASD</span> Walk / Pan camera</div>
+            <div><span class="key-tag">Shift</span> Sprint in walk mode</div>
+            <div><span class="key-tag">Ctrl / C</span> Crouch in walk mode</div>
+            <div><span class="key-tag">V</span> Switch Walk / Orbit View</div>
+            <div><span class="key-tag">Right-Click + Drag</span> Mouse Look / Orbit</div>
+            <div><span class="key-tag">Left-Click</span> Inspect / Use Equipped Tool</div>
           </div>
         </div>
       </aside>
