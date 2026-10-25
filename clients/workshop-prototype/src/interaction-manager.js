@@ -1,4 +1,6 @@
 import * as THREE from '../vendor/three.module.js';
+import { SOCKET_SET, AVAILABLE_TOOLS, validateSocketCompatibility, advanceFastenerThread } from './socket-system.js';
+import { CleaningSimulation } from './cleaning-system.js';
 
 export class InteractionManager {
   constructor(camera, scene, domElement, components, vehicleModel, conditionSystem, onComponentSelected, showToast) {
@@ -14,11 +16,17 @@ export class InteractionManager {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
 
-    this.activeTool = 'TOOL_INSPECT'; // Default: inspection hand
+    // Tools & Sockets
+    this.activeToolId = 'TOOL_INSPECT';
+    this.activeSocketId = 'socket_17'; // default to 17mm socket
+    this.configuredWrenchTorqueNm = 120.0;
+
+    // Cleaning Simulation
+    this.cleaningSim = new CleaningSimulation();
+
     this.hoveredMesh = null;
     this.selectedComponent = null;
-
-    this.configuredWrenchTorqueNm = 25.0; // Adjustable torque setting on wrench
+    this.selectedSurfaceId = 'surface_body_exterior';
 
     this.initEvents();
   }
@@ -28,13 +36,53 @@ export class InteractionManager {
     this.domElement.addEventListener('click', (e) => this.onClick(e));
   }
 
+  getActiveTool() {
+    return AVAILABLE_TOOLS.find(t => t.id === this.activeToolId);
+  }
+
+  getActiveSocket() {
+    return SOCKET_SET.find(s => s.id === this.activeSocketId);
+  }
+
   setTool(toolId) {
-    this.activeTool = toolId;
-    if (toolId === 'TOOL_TORQUE_17') {
-      this.configuredWrenchTorqueNm = 120.0;
-    } else if (toolId === 'TOOL_TORQUE_24') {
-      this.configuredWrenchTorqueNm = 25.0;
+    this.activeToolId = toolId;
+    const tool = this.getActiveTool();
+
+    // If tool has a default socket, select a compatible socket
+    if (tool && tool.defaultSocket) {
+      const match = SOCKET_SET.find(s => s.sizeMm === tool.defaultSocket && (!tool.driveSize || s.driveSize === tool.driveSize));
+      if (match) {
+        this.activeSocketId = match.id;
+      }
     }
+
+    if (tool && tool.category === 'TORQUE_WRENCH') {
+      if (this.activeSocketId === 'socket_17') this.configuredWrenchTorqueNm = 120.0;
+      else if (this.activeSocketId === 'socket_24') this.configuredWrenchTorqueNm = 25.0;
+      else if (this.activeSocketId === 'socket_13') this.configuredWrenchTorqueNm = 30.0;
+      else if (this.activeSocketId === 'socket_21') this.configuredWrenchTorqueNm = 145.0;
+      else if (this.activeSocketId === 'socket_10') this.configuredWrenchTorqueNm = 15.0;
+    }
+  }
+
+  setSocket(socketId) {
+    const socket = SOCKET_SET.find(s => s.id === socketId);
+    if (!socket) return;
+
+    const tool = this.getActiveTool();
+    if (tool && tool.driveSize && socket.driveSize !== tool.driveSize) {
+      this.showToast(`Warning: Socket drive size (${socket.driveSize}) does not match tool drive size (${tool.driveSize}).`, 'warning');
+    }
+
+    this.activeSocketId = socketId;
+    this.showToast(`Equipped ${socket.sizeMm}mm Hex Socket (${socket.driveSize} drive).`, 'info');
+
+    // Preset sensible torque if on torque wrench
+    if (socket.sizeMm === 17) this.configuredWrenchTorqueNm = 120.0;
+    else if (socket.sizeMm === 24) this.configuredWrenchTorqueNm = 25.0;
+    else if (socket.sizeMm === 13) this.configuredWrenchTorqueNm = 30.0;
+    else if (socket.sizeMm === 21) this.configuredWrenchTorqueNm = 145.0;
+    else if (socket.sizeMm === 10) this.configuredWrenchTorqueNm = 15.0;
   }
 
   setWrenchTorque(torqueNm) {
@@ -51,7 +99,6 @@ export class InteractionManager {
     const intersects = this.raycaster.intersectObjects(targetMeshes, true);
 
     if (intersects.length > 0) {
-      // Find parent with userData.componentId
       let current = intersects[0].object;
       while (current && !current.userData.componentId && current.parent) {
         current = current.parent;
@@ -61,7 +108,7 @@ export class InteractionManager {
         if (this.hoveredMesh !== current) {
           this.clearHover();
           this.hoveredMesh = current;
-          this.applyHighlight(current, 0x388bfd); // Blue hover highlight
+          this.applyHighlight(current, 0x388bfd);
           this.domElement.style.cursor = 'pointer';
         }
         return;
@@ -84,6 +131,9 @@ export class InteractionManager {
     if (!comp) return;
 
     this.selectedComponent = comp;
+    if (comp.surfaceId) {
+      this.selectedSurfaceId = comp.surfaceId;
+    }
     this.onComponentSelected(comp);
 
     // Apply immediate tool action if specific tool selected
@@ -91,12 +141,41 @@ export class InteractionManager {
   }
 
   applyActiveTool(comp) {
-    if (this.activeTool === 'TOOL_PRESSURE_WASHER') {
-      this.washComponent(comp);
-    } else if (this.activeTool === 'TOOL_DENT_PULLER') {
+    const tool = this.getActiveTool();
+    if (!tool) return;
+
+    if (tool.category === 'CLEANING') {
+      this.cleanTargetSurface(comp.surfaceId || this.selectedSurfaceId, tool.id);
+    } else if (tool.id === 'TOOL_DENT_PULLER') {
       this.pullDent(comp);
-    } else if (this.activeTool === 'TOOL_FUEL_NOZZLE') {
+    } else if (tool.id === 'TOOL_FUEL_NOZZLE') {
       this.refuelVehicle(comp);
+    }
+  }
+
+  cleanTargetSurface(surfaceId, toolId) {
+    const result = this.cleaningSim.applyCleaningTool(surfaceId, toolId, 2.0);
+    if (!result.success) {
+      this.showToast(result.message, 'error');
+      return;
+    }
+
+    this.showToast(result.message, 'success');
+
+    // Update aggregate condition score
+    this.conditionSystem.state.cleanliness = this.cleaningSim.getAggregateCleanliness();
+
+    // Update affected components linked to this surface
+    const surfaceCleanliness = this.cleaningSim.getSurfaceCleanliness(surfaceId);
+    this.components.forEach(c => {
+      if (c.surfaceId === surfaceId) {
+        c.cleanlinessPercentage = surfaceCleanliness;
+        this.vehicleModel.updateComponentVisuals(c);
+      }
+    });
+
+    if (this.selectedComponent) {
+      this.onComponentSelected(this.selectedComponent);
     }
   }
 
@@ -106,13 +185,19 @@ export class InteractionManager {
       return;
     }
 
-    // Check socket size match
-    let toolSocketSize = 17.0;
-    if (this.activeTool === 'TOOL_TORQUE_24') toolSocketSize = 24.0;
-    else if (this.activeTool === 'TOOL_TORQUE_17') toolSocketSize = 17.0;
+    const tool = this.getActiveTool();
+    const socket = this.getActiveSocket();
 
-    if (Math.abs(toolSocketSize - comp.fastener.socketSizeMm) > 0.1) {
-      this.showToast(`Socket mismatch! Wrench has ${toolSocketSize}mm socket, fastener requires ${comp.fastener.socketSizeMm}mm.`, 'error');
+    // Check socket compatibility
+    const validation = validateSocketCompatibility(tool, socket, comp.fastener);
+    if (!validation.compatible) {
+      this.showToast(validation.reason, 'error');
+      return;
+    }
+
+    // Check if threads are engaged
+    if (comp.fastener.currentEngagementMm < (comp.fastener.engagementLengthMm * 0.75)) {
+      this.showToast(`Cannot torque: Fastener threads are not fully engaged! (Engagement: ${comp.fastener.currentEngagementMm.toFixed(1)} / ${comp.fastener.engagementLengthMm.toFixed(1)} mm). Thread bolt in first.`, 'error');
       return;
     }
 
@@ -122,7 +207,7 @@ export class InteractionManager {
       comp.fastener.isStripped = true;
       comp.fastener.isTorqued = false;
       comp.fastener.currentTorqueNm = 0;
-      this.showToast(`DANGER: Over-torqued (${appliedTorque} N*m)! Fastener stripped/yielded.`, 'error');
+      this.showToast(`DANGER: Over-torqued (${appliedTorque} N*m)! Fastener sheared/yielded.`, 'error');
     } else {
       comp.fastener.currentTorqueNm = appliedTorque;
       const lower = comp.fastener.targetTorqueNm * 0.90;
@@ -143,19 +228,60 @@ export class InteractionManager {
     this.onComponentSelected(comp);
   }
 
+  unthreadFastener(comp, turns = 4.0) {
+    if (!comp.fastener) return;
+
+    const tool = this.getActiveTool();
+    const socket = this.getActiveSocket();
+    const validation = validateSocketCompatibility(tool, socket, comp.fastener);
+    if (!validation.compatible) {
+      this.showToast(validation.reason, 'error');
+      return;
+    }
+
+    // Unthread by turns
+    const advance = advanceFastenerThread(comp.fastener, -turns);
+    this.showToast(advance.message, advance.isDisengaged ? 'success' : 'info');
+
+    this.onComponentSelected(comp);
+  }
+
+  threadInFastener(comp, turns = 4.0) {
+    if (!comp.fastener) return;
+
+    const tool = this.getActiveTool();
+    const socket = this.getActiveSocket();
+    const validation = validateSocketCompatibility(tool, socket, comp.fastener);
+    if (!validation.compatible) {
+      this.showToast(validation.reason, 'error');
+      return;
+    }
+
+    const advance = advanceFastenerThread(comp.fastener, turns);
+    this.showToast(advance.message, 'info');
+
+    this.onComponentSelected(comp);
+  }
+
   loosenFasteners(comp) {
     if (!comp.fastener) return;
     comp.fastener.currentTorqueNm = 0;
     comp.fastener.isTorqued = false;
-    this.showToast(`Fasteners loosened for ${comp.name}.`, 'success');
+    this.showToast(`Fasteners loosened for ${comp.name}. (Threads still engaged).`, 'info');
     this.onComponentSelected(comp);
   }
 
   removeComponent(comp) {
-    // 1. Check if fasteners still tightened
-    if (comp.fastener && (comp.fastener.isTorqued || comp.fastener.currentTorqueNm > 0)) {
-      this.showToast(`Cannot remove ${comp.name}: Fasteners are still tightened! Loosen them first.`, 'error');
-      return;
+    // 1. Check if fasteners still tightened or engaged in threads
+    if (comp.fastener) {
+      if (comp.fastener.isTorqued || comp.fastener.currentTorqueNm > 0) {
+        this.showToast(`Cannot remove ${comp.name}: Fasteners are still torqued! Loosen them first.`, 'error');
+        return;
+      }
+      if (comp.fastener.currentEngagementMm > 0) {
+        this.showToast(`Cannot remove ${comp.name}: Fastener is still threaded in (${comp.fastener.currentEngagementMm.toFixed(1)} mm remaining). Unthread completely first.`, 'error');
+        return;
+      }
     }
 
     // 2. Check if dependent components block it (DAG prerequisites)
@@ -173,7 +299,6 @@ export class InteractionManager {
   }
 
   installComponent(comp) {
-    // Check prerequisites
     if (comp.prerequisites && comp.prerequisites.length > 0) {
       const missingPrereq = comp.prerequisites.find(prereqId => {
         const prereqComp = this.components.find(c => c.id === prereqId);
@@ -189,22 +314,11 @@ export class InteractionManager {
     if (comp.fastener) {
       comp.fastener.currentTorqueNm = 0;
       comp.fastener.isTorqued = false;
+      comp.fastener.currentEngagementMm = 0; // Starts unthreaded when first positioned
     }
     this.vehicleModel.updateComponentVisuals(comp);
     this.conditionSystem.updateFromComponents(this.components);
-    this.showToast(`Installed component: ${comp.name}. Fasteners are loose.`, 'success');
-    this.onComponentSelected(comp);
-  }
-
-  washComponent(comp) {
-    if (comp.cleanlinessPercentage >= 100) {
-      this.showToast(`${comp.name} is already pristine clean!`, 'info');
-      return;
-    }
-    comp.cleanlinessPercentage = 100.0;
-    this.vehicleModel.updateComponentVisuals(comp);
-    this.conditionSystem.updateFromComponents(this.components);
-    this.showToast(`Cleaned and degreased: ${comp.name} is now 100% clean.`, 'success');
+    this.showToast(`Installed component: ${comp.name}. Fasteners require threading in and torquing.`, 'success');
     this.onComponentSelected(comp);
   }
 
@@ -213,7 +327,7 @@ export class InteractionManager {
       this.showToast(`No dent detected on ${comp.name}.`, 'info');
       return;
     }
-    comp.dentDepthMm = Math.max(0, comp.dentDepthMm - 2.5); // 2.5mm pull reduction
+    comp.dentDepthMm = Math.max(0, comp.dentDepthMm - 2.5);
     if (comp.dentDepthMm === 0) {
       this.showToast(`Dent fully pulled! Surface curvature restored on ${comp.name}.`, 'success');
     } else {
@@ -242,7 +356,6 @@ export class InteractionManager {
       return;
     }
 
-    // Dispense 10 Liters
     const available = comp.tankCapacityLiters - comp.currentFuelLiters;
     if (available <= 0.1) {
       this.showToast(`Fuel tank is completely full (60.0 L). Dispenser nozzle clicked off.`, 'success');

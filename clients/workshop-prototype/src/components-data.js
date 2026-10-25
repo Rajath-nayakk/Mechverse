@@ -1,5 +1,5 @@
 /**
- * MECHVERSE Initial Component Database & Engineering Specifications
+ * MECHVERSE Comprehensive Component Database & Engineering Specifications
  */
 
 export const INITIAL_COMPONENTS = [
@@ -9,27 +9,67 @@ export const INITIAL_COMPONENTS = [
     category: 'Engine / Lubrication',
     partNumber: 'MV-FILT-M20',
     meshId: 'mesh_oil_filter',
+    surfaceId: 'surface_engine_bay',
     massKg: 0.45,
     dimensionsCm: { x: 7.6, y: 7.6, z: 9.0 },
     installed: true,
     parentSocket: 'engine_oil_cooler_boss',
     fastener: {
       type: 'Threaded Spun Boss',
-      driveType: 'Filter End Cap / 24mm Hex',
-      socketSizeMm: 24.0,
+      driveType: 'HexMetric',
+      socketSizeMm: 24.0, // 24mm hex end-cap or filter socket
+      nominalDiameterMm: 20.0, // M20x1.5 thread
+      threadPitchMm: 1.5,
+      engagementLengthMm: 15.0,
+      currentEngagementMm: 15.0,
       targetTorqueNm: 25.0,
       yieldTorqueLimitNm: 45.0,
       torqueCoeffK: 0.16,
       currentTorqueNm: 25.0,
       isTorqued: true,
-      isStripped: false
+      isStripped: false,
+      material: 'Stamped Sheet Steel / Cast Aluminum Boss'
     },
     prerequisites: [],
     wearPercentage: 12.0,
-    cleanlinessPercentage: 65.0,
+    cleanlinessPercentage: 45.0,
     dentDepthMm: 0.0,
     scratchDepthUm: 0.0,
-    description: 'Full-flow spin-on oil filter equipped with anti-drainback valve and 20-micron cellulose/synthetic filter media.'
+    description: 'Full-flow spin-on oil filter equipped with anti-drainback valve and 20-micron filter media. Fastener features M20x1.5 thread boss tightened with 24mm socket.'
+  },
+  {
+    id: 'oil_drain_plug',
+    name: 'Engine Oil Pan Drain Plug',
+    category: 'Engine / Lubrication',
+    partNumber: 'MV-PLUG-M14',
+    meshId: 'mesh_drain_plug',
+    surfaceId: 'surface_engine_bay',
+    massKg: 0.08,
+    dimensionsCm: { x: 2.5, y: 2.5, z: 3.0 },
+    installed: true,
+    parentSocket: 'engine_oil_pan',
+    fastener: {
+      type: 'Flanged Hex Drain Bolt with Crush Washer',
+      driveType: 'HexMetric',
+      socketSizeMm: 13.0, // 13mm hex socket
+      nominalDiameterMm: 14.0, // M14x1.5 drain thread
+      threadPitchMm: 1.5,
+      engagementLengthMm: 18.0,
+      currentEngagementMm: 18.0,
+      targetTorqueNm: 30.0,
+      yieldTorqueLimitNm: 55.0,
+      torqueCoeffK: 0.15,
+      currentTorqueNm: 30.0,
+      isTorqued: true,
+      isStripped: false,
+      material: 'Grade 8.8 Steel with Copper Washer'
+    },
+    prerequisites: [],
+    wearPercentage: 8.0,
+    cleanlinessPercentage: 30.0,
+    dentDepthMm: 0.0,
+    scratchDepthUm: 0.0,
+    description: 'Engine oil pan magnetic sump drain plug. Requires 13mm socket on 3/8" ratchet. Tightening specification: 30.0 N*m.'
   },
   {
     id: 'front_right_wheel',
@@ -37,28 +77,68 @@ export const INITIAL_COMPONENTS = [
     category: 'Chassis / Wheels',
     partNumber: 'MV-WHL-18X8',
     meshId: 'mesh_wheel_fr',
+    surfaceId: 'surface_wheels',
     massKg: 21.5,
     dimensionsCm: { x: 45.7, y: 22.5, z: 45.7 },
     installed: true,
     parentSocket: 'front_right_wheel_hub',
     fastener: {
       type: 'Lug Nut (Set of 5)',
-      driveType: 'Hex Metric 17mm',
-      socketSizeMm: 17.0,
+      driveType: 'HexMetric',
+      socketSizeMm: 17.0, // 17mm socket
+      nominalDiameterMm: 12.0, // M12x1.5 wheel studs
+      threadPitchMm: 1.5,
+      engagementLengthMm: 24.0,
+      currentEngagementMm: 24.0,
       targetTorqueNm: 120.0,
       yieldTorqueLimitNm: 210.0,
       torqueCoeffK: 0.18,
       currentTorqueNm: 120.0,
       isTorqued: true,
-      isStripped: false
+      isStripped: false,
+      material: 'ISO 898-1 Class 10.9 Alloy Steel'
     },
     prerequisites: [],
     wearPercentage: 18.0,
     cleanlinessPercentage: 42.0, // brake dust
     dentDepthMm: 0.0,
     scratchDepthUm: 15.0,
-    treadDepthMm: 6.8, // mm
-    description: 'Cast aluminum alloy 18x8J wheel mounted with 235/40R18 radial performance tire.'
+    treadDepthMm: 6.8,
+    description: 'Cast aluminum alloy 18x8J wheel mounted with 235/40R18 tire. Held by 5x M12x1.5 studs requiring 17mm deep-well socket torqued to 120 N*m in star sequence.'
+  },
+  {
+    id: 'suspension_strut_bolt',
+    name: 'Front Strut Lower Mounting Bolt',
+    category: 'Suspension',
+    partNumber: 'MV-SUSP-BLT-M16',
+    meshId: 'mesh_strut_bolt',
+    surfaceId: 'surface_wheels',
+    massKg: 0.35,
+    dimensionsCm: { x: 3.0, y: 3.0, z: 8.5 },
+    installed: true,
+    parentSocket: 'front_steering_knuckle',
+    fastener: {
+      type: 'High-Tensile Flange Bolt & Prevailing Torque Nut',
+      driveType: 'HexMetric',
+      socketSizeMm: 21.0, // 21mm socket
+      nominalDiameterMm: 16.0, // M16x1.5 heavy suspension bolt
+      threadPitchMm: 1.5,
+      engagementLengthMm: 35.0,
+      currentEngagementMm: 35.0,
+      targetTorqueNm: 145.0,
+      yieldTorqueLimitNm: 260.0,
+      torqueCoeffK: 0.18,
+      currentTorqueNm: 145.0,
+      isTorqued: true,
+      isStripped: false,
+      material: 'Property Class 10.9 Zinc Flake'
+    },
+    prerequisites: ['front_right_wheel'],
+    wearPercentage: 10.0,
+    cleanlinessPercentage: 35.0,
+    dentDepthMm: 0.0,
+    scratchDepthUm: 0.0,
+    description: 'Heavy duty M16 lower strut clamp bolt securing damper body to steering knuckle. Requires 21mm socket on 1/2" drive.'
   },
   {
     id: 'brake_rotor_fr',
@@ -66,28 +146,34 @@ export const INITIAL_COMPONENTS = [
     category: 'Brake System',
     partNumber: 'MV-BRK-ROT-320',
     meshId: 'mesh_rotor_fr',
+    surfaceId: 'surface_wheels',
     massKg: 9.8,
     dimensionsCm: { x: 32.0, y: 3.2, z: 32.0 },
     installed: true,
     parentSocket: 'front_right_wheel_hub',
     fastener: {
-      type: 'Countersunk Torx Retaining Screw',
-      driveType: 'Torx T30',
-      socketSizeMm: 10.0,
+      type: 'Countersunk Disc Retaining Screw',
+      driveType: 'HexMetric',
+      socketSizeMm: 10.0, // 10mm hex socket
+      nominalDiameterMm: 6.0, // M6x1.0 thread
+      threadPitchMm: 1.0,
+      engagementLengthMm: 12.0,
+      currentEngagementMm: 12.0,
       targetTorqueNm: 15.0,
       yieldTorqueLimitNm: 28.0,
       torqueCoeffK: 0.17,
       currentTorqueNm: 15.0,
       isTorqued: true,
-      isStripped: false
+      isStripped: false,
+      material: 'Grade 8.8 High Tensile Steel'
     },
-    prerequisites: ['front_right_wheel'], // must remove wheel first
+    prerequisites: ['front_right_wheel'],
     wearPercentage: 25.0,
     cleanlinessPercentage: 50.0,
     dentDepthMm: 0.0,
     scratchDepthUm: 35.0,
     runoutMm: 0.02,
-    description: '320mm directional vented grey iron brake disc. Requires wheel removal prior to dismounting.'
+    description: '320mm directional vented grey iron brake disc. Requires wheel dismounting prior to rotor servicing. M6 screw secured with 10mm socket.'
   },
   {
     id: 'fuel_filler_assembly',
@@ -95,6 +181,7 @@ export const INITIAL_COMPONENTS = [
     category: 'Fuel Delivery',
     partNumber: 'MV-FUEL-CAP-95',
     meshId: 'mesh_fuel_door',
+    surfaceId: 'surface_body_exterior',
     massKg: 0.8,
     dimensionsCm: { x: 16.0, y: 8.0, z: 16.0 },
     installed: true,
@@ -116,27 +203,71 @@ export const INITIAL_COMPONENTS = [
     category: 'Body Panel',
     partNumber: 'MV-BODY-FNDR-FR',
     meshId: 'mesh_fender_fr',
+    surfaceId: 'surface_body_exterior',
     massKg: 7.2,
     dimensionsCm: { x: 110.0, y: 25.0, z: 65.0 },
     installed: true,
     parentSocket: 'chassis_unibody',
     fastener: {
       type: 'M6 Flanged Hex Bolt (x6)',
-      driveType: 'Hex Metric 10mm',
-      socketSizeMm: 10.0,
+      driveType: 'HexMetric',
+      socketSizeMm: 10.0, // 10mm hex socket
+      nominalDiameterMm: 6.0, // M6x1.0 thread
+      threadPitchMm: 1.0,
+      engagementLengthMm: 16.0,
+      currentEngagementMm: 16.0,
       targetTorqueNm: 9.5,
       yieldTorqueLimitNm: 18.0,
       torqueCoeffK: 0.19,
       currentTorqueNm: 9.5,
       isTorqued: true,
-      isStripped: false
+      isStripped: false,
+      material: 'Class 8.8 Zinc-Plated Steel'
     },
     prerequisites: [],
     wearPercentage: 15.0,
-    cleanlinessPercentage: 35.0, // road grime and mud splash
-    dentDepthMm: 4.5, // 4.5mm dent!
-    scratchDepthUm: 45.0, // scratches down to primer
+    cleanlinessPercentage: 35.0,
+    dentDepthMm: 4.5, // 4.5mm dent
+    scratchDepthUm: 45.0,
     paintQuality: 78.0,
-    description: 'Deep-draw stamped steel body panel. Features localized dent and primer-level clearcoat scratching requiring panel beating and detailing.'
+    description: 'Deep-draw stamped steel body panel. Features localized dent and primer-level clearcoat scratching requiring panel beating, washing, and detailing.'
+  },
+  {
+    id: 'interior_cabin',
+    name: 'Vehicle Interior Cabin (Seats & Mats)',
+    category: 'Interior',
+    partNumber: 'MV-INT-CABIN-01',
+    meshId: 'mesh_interior',
+    surfaceId: 'surface_interior_cabin',
+    massKg: 35.0,
+    dimensionsCm: { x: 140.0, y: 90.0, z: 160.0 },
+    installed: true,
+    parentSocket: 'chassis_floor_pan',
+    fastener: null,
+    prerequisites: [],
+    wearPercentage: 10.0,
+    cleanlinessPercentage: 25.0, // lots of loose crumbs, dirt, dust
+    dentDepthMm: 0.0,
+    scratchDepthUm: 0.0,
+    description: 'Driver and passenger bucket seats with dense cut-pile carpet and floor mats. Highly susceptible to loose grit, dust, and food debris. Requires vacuum extraction.'
+  },
+  {
+    id: 'windshield_glass',
+    name: 'Front Laminated Windshield Glass',
+    category: 'Glass',
+    partNumber: 'MV-GLS-WNDSHLD-01',
+    meshId: 'mesh_windshield',
+    surfaceId: 'surface_windshield_glass',
+    massKg: 12.0,
+    dimensionsCm: { x: 135.0, y: 70.0, z: 0.5 },
+    installed: true,
+    parentSocket: 'chassis_a_pillars',
+    fastener: null,
+    prerequisites: [],
+    wearPercentage: 4.0,
+    cleanlinessPercentage: 40.0, // water spots and dust
+    dentDepthMm: 0.0,
+    scratchDepthUm: 0.0,
+    description: 'Dual-layer acoustic PVB laminated automotive safety glass. Cleans with specialized ammonia-free glass cleaner and waffle-weave microfiber.'
   }
 ];

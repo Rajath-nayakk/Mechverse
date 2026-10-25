@@ -5,6 +5,7 @@ import { VehicleConditionSystem } from './condition-system.js';
 import { GarageWorld } from './garage-world.js';
 import { VehicleModel } from './vehicle-model.js';
 import { InteractionManager } from './interaction-manager.js';
+import { SOCKET_SET, AVAILABLE_TOOLS } from './socket-system.js';
 
 // Setup Application State
 const components = JSON.parse(JSON.stringify(INITIAL_COMPONENTS));
@@ -39,7 +40,7 @@ controls.target.set(0, 1.0, 0);
 const garage = new GarageWorld(scene);
 const vehicle = new VehicleModel(scene, garage.liftCarriageGroup);
 
-// Notification System
+// Notification Toast System
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
@@ -82,6 +83,34 @@ const compDescriptionEl = document.getElementById('comp-description');
 const dynamicActionsEl = document.getElementById('dynamic-actions');
 const torqueSliderEl = document.getElementById('torque-slider');
 const torqueDisplayEl = document.getElementById('torque-display');
+const currentSocketDisplayEl = document.getElementById('current-socket-display');
+
+// Populate Socket Selection Tray
+function initSocketTray() {
+  const socketTrayEl = document.getElementById('socket-tray');
+  socketTrayEl.innerHTML = '';
+
+  SOCKET_SET.forEach(socket => {
+    const btn = document.createElement('button');
+    btn.className = `socket-badge ${socket.id === interaction.activeSocketId ? 'active' : ''}`;
+    btn.dataset.socketId = socket.id;
+    btn.innerHTML = `<span style="font-weight:700;">${socket.sizeMm}mm</span><span style="font-size:9px;color:var(--text-muted);">${socket.driveSize}</span>`;
+    btn.onclick = () => {
+      document.querySelectorAll('.socket-badge').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      interaction.setSocket(socket.id);
+      currentSocketDisplayEl.textContent = `${socket.sizeMm}mm (${socket.driveSize})`;
+      torqueDisplayEl.textContent = `${interaction.configuredWrenchTorqueNm} N*m`;
+      torqueSliderEl.value = interaction.configuredWrenchTorqueNm;
+      if (interaction.selectedComponent) {
+        updateInspectionUI(interaction.selectedComponent);
+      }
+    };
+    socketTrayEl.appendChild(btn);
+  });
+}
+
+initSocketTray();
 
 // Update Inspection HUD
 function updateInspectionUI(comp) {
@@ -95,7 +124,7 @@ function updateInspectionUI(comp) {
     compWearEl.textContent = '--';
     compCleanEl.textContent = '--';
     compStatusEl.textContent = '--';
-    compDescriptionEl.textContent = 'Click on the Oil Filter, Front Wheel, Brake Rotor, Quarter Panel, or Fuel Flap to inspect mechanical specifications, torque values, and condition.';
+    compDescriptionEl.textContent = 'Click on the Oil Filter, Front Wheel, Brake Rotor, Quarter Panel, Interior Cabin, or Windshield to inspect.';
     dynamicActionsEl.innerHTML = '';
     return;
   }
@@ -106,7 +135,7 @@ function updateInspectionUI(comp) {
   compMassEl.textContent = `${comp.massKg} kg`;
 
   if (comp.fastener) {
-    compFastenerEl.textContent = `${comp.fastener.driveType} (${comp.fastener.socketSizeMm}mm)`;
+    compFastenerEl.textContent = `${comp.fastener.driveType} (${comp.fastener.socketSizeMm}mm) | M${comp.fastener.nominalDiameterMm}x${comp.fastener.threadPitchMm}`;
     compTorqueEl.textContent = `${comp.fastener.currentTorqueNm.toFixed(1)} / ${comp.fastener.targetTorqueNm} N*m`;
   } else {
     compFastenerEl.textContent = 'No Fasteners';
@@ -130,19 +159,92 @@ function updateInspectionUI(comp) {
 function buildDynamicActions(comp) {
   dynamicActionsEl.innerHTML = '';
 
-  // Torque Wrench Action
+  const activeTool = interaction.getActiveTool();
+  const activeSocket = interaction.getActiveSocket();
+
+  // Fastener Threading and Torquing Controls
   if (comp.fastener && comp.installed) {
+    // Clamping Force Display
+    if (comp.fastener.currentTorqueNm > 0) {
+      const diameterMeters = comp.fastener.nominalDiameterMm / 1000.0;
+      const clampN = comp.fastener.currentTorqueNm / (comp.fastener.torqueCoeffK * diameterMeters);
+      const clampDiv = document.createElement('div');
+      clampDiv.style.cssText = 'background: rgba(56, 139, 253, 0.1); border: 1px solid var(--accent-blue); padding: 8px; border-radius: 6px; font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); margin-bottom: 4px;';
+      clampDiv.innerHTML = `<strong>Clamping Preload (F = T/(K*d)):</strong> ${clampN.toFixed(0)} N (~${(clampN / 9.806).toFixed(0)} kgf)`;
+      dynamicActionsEl.appendChild(clampDiv);
+    }
+
+    // Thread Engagement Bar
+    const engPercent = (comp.fastener.currentEngagementMm / comp.fastener.engagementLengthMm) * 100;
+    const engDiv = document.createElement('div');
+    engDiv.style.cssText = 'margin-bottom: 6px; font-size: 11px;';
+    engDiv.innerHTML = `
+      <div style="display:flex; justify-content:space-between; color:var(--text-muted); margin-bottom:2px;">
+        <span>THREAD ENGAGEMENT</span>
+        <span style="font-family:var(--font-mono); font-weight:700; color:var(--text-main);">${comp.fastener.currentEngagementMm.toFixed(1)} / ${comp.fastener.engagementLengthMm.toFixed(1)} mm</span>
+      </div>
+      <div class="progress-bar-container"><div class="progress-fill" style="width: ${engPercent}%;"></div></div>
+    `;
+    dynamicActionsEl.appendChild(engDiv);
+
+    // Threading Buttons
+    const threadRow = document.createElement('div');
+    threadRow.style.cssText = 'display: flex; gap: 6px; margin-bottom: 6px;';
+
+    const btnThreadIn = document.createElement('button');
+    btnThreadIn.className = 'action-btn secondary';
+    btnThreadIn.style.flex = '1';
+    btnThreadIn.innerHTML = `<span>↻</span> Thread In (+4 turns)`;
+    btnThreadIn.onclick = () => interaction.threadInFastener(comp, 4.0);
+    threadRow.appendChild(btnThreadIn);
+
+    const btnUnthread = document.createElement('button');
+    btnUnthread.className = 'action-btn secondary';
+    btnUnthread.style.flex = '1';
+    btnUnthread.innerHTML = `<span>↺</span> Unthread (-4 turns)`;
+    btnUnthread.onclick = () => interaction.unthreadFastener(comp, 4.0);
+    threadRow.appendChild(btnUnthread);
+
+    dynamicActionsEl.appendChild(threadRow);
+
+    // Apply Torque Button
     const btnTorque = document.createElement('button');
     btnTorque.className = 'action-btn';
-    btnTorque.innerHTML = `<span>🔧</span> Apply Torque (${interaction.configuredWrenchTorqueNm} N*m)`;
+    btnTorque.innerHTML = `<span>🔧</span> Apply Torque (${interaction.configuredWrenchTorqueNm} N*m with ${activeSocket ? activeSocket.sizeMm + 'mm' : 'no'} socket)`;
     btnTorque.onclick = () => interaction.applyTorqueWrench(comp);
     dynamicActionsEl.appendChild(btnTorque);
+  }
 
-    const btnLoosen = document.createElement('button');
-    btnLoosen.className = 'action-btn secondary';
-    btnLoosen.innerHTML = `<span>↺</span> Loosen Fasteners`;
-    btnLoosen.onclick = () => interaction.loosenFasteners(comp);
-    dynamicActionsEl.appendChild(btnLoosen);
+  // Surface Cleaning Section
+  if (comp.surfaceId) {
+    const surface = interaction.cleaningSim.getSurface(comp.surfaceId);
+    if (surface) {
+      const surfaceCard = document.createElement('div');
+      surfaceCard.style.cssText = 'background: rgba(33, 38, 45, 0.7); border: 1px solid var(--bg-panel-border); border-radius: 6px; padding: 10px; margin-top: 6px; display: flex; flex-direction: column; gap: 6px;';
+      
+      let contList = Object.entries(surface.contaminations)
+        .filter(([_, val]) => val > 0)
+        .map(([k, val]) => `<span style="font-size:10px; background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:3px;">${k}: ${val.toFixed(0)}%</span>`)
+        .join(' ');
+      
+      if (!contList) contList = '<span style="color:var(--accent-green);font-size:11px;">Pristine Clean</span>';
+
+      surfaceCard.innerHTML = `
+        <div style="font-size:11px; font-weight:700; color:var(--accent-cyan); text-transform:uppercase;">Surface Contamination (${surface.material})</div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">${contList}</div>
+      `;
+
+      // Context clean action button for active cleaning tool
+      if (activeTool && activeTool.category === 'CLEANING') {
+        const btnClean = document.createElement('button');
+        btnClean.className = 'action-btn';
+        btnClean.innerHTML = `<span>🚿</span> Apply ${activeTool.name} on ${surface.name}`;
+        btnClean.onclick = () => interaction.cleanTargetSurface(surface.id, activeTool.id);
+        surfaceCard.appendChild(btnClean);
+      }
+
+      dynamicActionsEl.appendChild(surfaceCard);
+    }
   }
 
   // Remove / Install Action
@@ -158,15 +260,6 @@ function buildDynamicActions(comp) {
     btnInstall.innerHTML = `<span>⏎</span> Install Component`;
     btnInstall.onclick = () => interaction.installComponent(comp);
     dynamicActionsEl.appendChild(btnInstall);
-  }
-
-  // Clean / Wash Action
-  if (comp.cleanlinessPercentage < 100) {
-    const btnWash = document.createElement('button');
-    btnWash.className = 'action-btn secondary';
-    btnWash.innerHTML = `<span>🚿</span> Wash & Degrease Component`;
-    btnWash.onclick = () => interaction.washComponent(comp);
-    dynamicActionsEl.appendChild(btnWash);
   }
 
   // Dent Puller Action
@@ -231,13 +324,18 @@ toolButtons.forEach(btn => {
     interaction.setTool(toolId);
     showToast(`Equipped tool: ${btn.textContent.trim()}`, 'info');
 
-    if (toolId === 'TOOL_TORQUE_17') {
-      torqueSliderEl.value = 120;
-      torqueDisplayEl.textContent = '120 N*m';
-    } else if (toolId === 'TOOL_TORQUE_24') {
-      torqueSliderEl.value = 25;
-      torqueDisplayEl.textContent = '25 N*m';
+    // Update socket display
+    const activeSocket = interaction.getActiveSocket();
+    if (activeSocket) {
+      currentSocketDisplayEl.textContent = `${activeSocket.sizeMm}mm (${activeSocket.driveSize})`;
+      document.querySelectorAll('.socket-badge').forEach(sb => {
+        sb.classList.toggle('active', sb.dataset.socketId === activeSocket.id);
+      });
     }
+
+    torqueSliderEl.value = interaction.configuredWrenchTorqueNm;
+    torqueDisplayEl.textContent = `${interaction.configuredWrenchTorqueNm} N*m`;
+
     if (interaction.selectedComponent) {
       buildDynamicActions(interaction.selectedComponent);
     }
@@ -316,4 +414,4 @@ function animate() {
 }
 
 animate();
-showToast('MECHVERSE Workshop Ready. Click components to inspect and service.', 'success');
+showToast('MECHVERSE Workshop Ready. Select tools & sockets to inspect and service components.', 'success');

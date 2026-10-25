@@ -28,8 +28,12 @@
           <span id="lift-height-display" class="telemetry-value">0.0m (Floor)</span>
         </div>
         <div class="telemetry-item">
+          <span class="telemetry-label">EQUIPPED SOCKET:</span>
+          <span id="current-socket-display" class="telemetry-value">17mm (1/2")</span>
+        </div>
+        <div class="telemetry-item">
           <span class="telemetry-label">TORQUE SPEC:</span>
-          <span id="torque-display" class="telemetry-value">25 N*m</span>
+          <span id="torque-display" class="telemetry-value">120 N*m</span>
         </div>
       </div>
     </header>
@@ -46,26 +50,59 @@
               <span class="tool-icon">🔍</span>
               <span>Inspection Probe</span>
             </button>
-            <button class="tool-btn" data-tool="TOOL_TORQUE_24">
+            <button class="tool-btn" data-tool="TOOL_TORQUE_1_2">
               <span class="tool-icon">🔧</span>
-              <span>1/2" Torque Wrench (24mm)</span>
+              <span>1/2" Micrometer Torque Wrench</span>
             </button>
-            <button class="tool-btn" data-tool="TOOL_TORQUE_17">
+            <button class="tool-btn" data-tool="TOOL_RATCHET_3_8">
               <span class="tool-icon">🔩</span>
-              <span>1/2" Torque Wrench (17mm)</span>
+              <span>3/8" Reversible Ratchet</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_BREAKER_BAR">
+              <span class="tool-icon">🔨</span>
+              <span>1/2" Heavy Breaker Bar</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_FOAM_CANNON">
+              <span class="tool-icon">🧼</span>
+              <span>Snow Foam Cannon</span>
             </button>
             <button class="tool-btn" data-tool="TOOL_PRESSURE_WASHER">
               <span class="tool-icon">🚿</span>
-              <span>Pressure Washer / Degreaser</span>
+              <span>High-Pressure Rinse Jet</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_DEGREASER">
+              <span class="tool-icon">🧪</span>
+              <span>Heavy Duty Degreaser</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_WHEEL_CLEANER">
+              <span class="tool-icon">🛞</span>
+              <span>Reactive Wheel Cleaner</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_GLASS_CLEANER">
+              <span class="tool-icon">✨</span>
+              <span>Ammonia-Free Glass Cleaner</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_VACUUM_CLEANER">
+              <span class="tool-icon">🧹</span>
+              <span>Wet/Dry Shop Vacuum</span>
             </button>
             <button class="tool-btn" data-tool="TOOL_DENT_PULLER">
-              <span class="tool-icon">🔨</span>
+              <span class="tool-icon">🪠</span>
               <span>Suction Dent Puller</span>
             </button>
             <button class="tool-btn" data-tool="TOOL_FUEL_NOZZLE">
               <span class="tool-icon">⛽</span>
               <span>Fuel Dispenser Nozzle</span>
             </button>
+          </div>
+
+          <!-- Socket Set Tray -->
+          <div class="socket-tray-container">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Metric Socket Set</span>
+              <span style="font-size:10px; color:var(--accent-cyan); font-family:var(--font-mono);">6 Sockets</span>
+            </div>
+            <div id="socket-tray" class="socket-grid"></div>
           </div>
         </div>
 

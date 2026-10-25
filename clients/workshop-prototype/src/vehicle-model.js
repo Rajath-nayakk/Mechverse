@@ -5,6 +5,7 @@ export class VehicleModel {
     this.scene = scene;
     this.liftGroup = liftGroup; // Moves synchronously with the hydraulic lift
     this.interactiveMeshes = new Map(); // componentId -> THREE.Mesh
+    this.surfaceMeshes = new Map(); // surfaceId -> Array<THREE.Mesh>
     this.vehicleRoot = new THREE.Group();
     this.liftGroup.add(this.vehicleRoot);
 
@@ -35,7 +36,45 @@ export class VehicleModel {
     cabin.castShadow = true;
     this.vehicleRoot.add(cabin);
 
-    // 2. Engine Block & Oil Pan in Engine Bay (Front: z = 1.3)
+    // 2. Interior Seats & Cabin Geometry
+    const interiorGroup = new THREE.Group();
+    interiorGroup.position.set(0, 0.65, -0.2);
+    const seatMat = new THREE.MeshStandardMaterial({ color: 0x30363d, roughness: 0.9 });
+    // Left & right seats
+    [-0.35, 0.35].forEach(x => {
+      const seatBottomGeo = new THREE.BoxGeometry(0.45, 0.12, 0.5);
+      const seatBottom = new THREE.Mesh(seatBottomGeo, seatMat);
+      seatBottom.position.set(x, 0.06, 0);
+      interiorGroup.add(seatBottom);
+
+      const seatBackGeo = new THREE.BoxGeometry(0.45, 0.5, 0.12);
+      const seatBack = new THREE.Mesh(seatBackGeo, seatMat);
+      seatBack.position.set(x, 0.32, -0.22);
+      interiorGroup.add(seatBack);
+    });
+    interiorGroup.userData = { componentId: 'interior_cabin', surfaceId: 'surface_interior_cabin' };
+    this.vehicleRoot.add(interiorGroup);
+    this.interactiveMeshes.set('interior_cabin', interiorGroup);
+
+    // 3. Front Windshield Glass
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xa5d8ff,
+      transparent: true,
+      opacity: 0.55,
+      roughness: 0.1,
+      metalness: 0.1,
+      transmission: 0.8,
+      ior: 1.5
+    });
+    const glassGeo = new THREE.PlaneGeometry(1.4, 0.7);
+    const windshield = new THREE.Mesh(glassGeo, glassMat);
+    windshield.position.set(0, 0.95, 0.88);
+    windshield.rotation.x = -Math.PI / 4;
+    windshield.userData = { componentId: 'windshield_glass', surfaceId: 'surface_windshield_glass' };
+    this.vehicleRoot.add(windshield);
+    this.interactiveMeshes.set('windshield_glass', windshield);
+
+    // 4. Engine Block & Oil Pan in Engine Bay (Front: z = 1.3)
     const engineMat = new THREE.MeshStandardMaterial({
       color: 0x57606a,
       roughness: 0.6,
@@ -52,6 +91,15 @@ export class VehicleModel {
     panMesh.position.set(0, 0.12, 1.3);
     this.vehicleRoot.add(panMesh);
 
+    // Drain plug on bottom of pan
+    const plugMat = new THREE.MeshStandardMaterial({ color: 0xd29922, metalness: 0.8, roughness: 0.2 });
+    const plugGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.03, 6);
+    const drainPlug = new THREE.Mesh(plugGeo, plugMat);
+    drainPlug.position.set(0.12, 0.02, 1.3);
+    drainPlug.userData = { componentId: 'oil_drain_plug', surfaceId: 'surface_engine_bay' };
+    this.vehicleRoot.add(drainPlug);
+    this.interactiveMeshes.set('oil_drain_plug', drainPlug);
+
     // -------------------------------------------------------------
     // INTERACTIVE PART 1: Spin-On Oil Filter Canister (Blue)
     // -------------------------------------------------------------
@@ -64,12 +112,12 @@ export class VehicleModel {
     const filterMesh = new THREE.Mesh(filterGeo, filterMat);
     filterMesh.rotation.x = Math.PI / 2; // Threads facing forward
     filterMesh.position.set(0.22, 0.14, 1.45);
-    filterMesh.userData = { componentId: 'oil_filter_canister' };
+    filterMesh.userData = { componentId: 'oil_filter_canister', surfaceId: 'surface_engine_bay' };
     this.vehicleRoot.add(filterMesh);
     this.interactiveMeshes.set('oil_filter_canister', filterMesh);
 
     // -------------------------------------------------------------
-    // INTERACTIVE PART 2: Front Right Alloy Wheel & Tire (x = 1.05, z = 1.35)
+    // INTERACTIVE PART 2: Front Right Alloy Wheel & Tire (x = 1.02, z = 1.35)
     // -------------------------------------------------------------
     const wheelGroup = new THREE.Group();
     wheelGroup.position.set(1.02, 0.35, 1.35);
@@ -100,7 +148,7 @@ export class VehicleModel {
       wheelGroup.add(lug);
     }
 
-    wheelGroup.userData = { componentId: 'front_right_wheel' };
+    wheelGroup.userData = { componentId: 'front_right_wheel', surfaceId: 'surface_wheels' };
     this.vehicleRoot.add(wheelGroup);
     this.interactiveMeshes.set('front_right_wheel', wheelGroup);
 
@@ -111,7 +159,6 @@ export class VehicleModel {
 
     // -------------------------------------------------------------
     // INTERACTIVE PART 3: Front Right Brake Rotor & Caliper
-    // Mounted just inboard of the wheel (x = 0.88, z = 1.35)
     // -------------------------------------------------------------
     const brakeGroup = new THREE.Group();
     brakeGroup.position.set(0.88, 0.35, 1.35);
@@ -134,9 +181,19 @@ export class VehicleModel {
     caliperMesh.position.set(0.02, 0.12, 0.08);
     brakeGroup.add(caliperMesh);
 
-    brakeGroup.userData = { componentId: 'brake_rotor_fr' };
+    brakeGroup.userData = { componentId: 'brake_rotor_fr', surfaceId: 'surface_wheels' };
     this.vehicleRoot.add(brakeGroup);
     this.interactiveMeshes.set('brake_rotor_fr', brakeGroup);
+
+    // Suspension strut clamp bolt
+    const strutBoltMat = new THREE.MeshStandardMaterial({ color: 0x30363d, metalness: 0.8, roughness: 0.3 });
+    const strutBoltGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.12, 6);
+    const strutBolt = new THREE.Mesh(strutBoltGeo, strutBoltMat);
+    strutBolt.position.set(0.82, 0.52, 1.35);
+    strutBolt.rotation.z = Math.PI / 2;
+    strutBolt.userData = { componentId: 'suspension_strut_bolt', surfaceId: 'surface_wheels' };
+    this.vehicleRoot.add(strutBolt);
+    this.interactiveMeshes.set('suspension_strut_bolt', strutBolt);
 
     // -------------------------------------------------------------
     // INTERACTIVE PART 4: Fuel Filler Flap / Door & Cap (Rear Right)
@@ -149,7 +206,7 @@ export class VehicleModel {
     });
     const fuelDoorMesh = new THREE.Mesh(fuelDoorGeo, fuelDoorMat);
     fuelDoorMesh.position.set(0.92, 0.65, -1.2);
-    fuelDoorMesh.userData = { componentId: 'fuel_filler_assembly' };
+    fuelDoorMesh.userData = { componentId: 'fuel_filler_assembly', surfaceId: 'surface_body_exterior' };
     this.vehicleRoot.add(fuelDoorMesh);
     this.interactiveMeshes.set('fuel_filler_assembly', fuelDoorMesh);
 
@@ -164,7 +221,7 @@ export class VehicleModel {
     });
     const fenderMesh = new THREE.Mesh(fenderGeo, fenderMat);
     fenderMesh.position.set(0.94, 0.52, 1.1);
-    fenderMesh.userData = { componentId: 'front_right_quarter_panel' };
+    fenderMesh.userData = { componentId: 'front_right_quarter_panel', surfaceId: 'surface_body_exterior' };
     this.vehicleRoot.add(fenderMesh);
     this.interactiveMeshes.set('front_right_quarter_panel', fenderMesh);
   }
@@ -205,13 +262,15 @@ export class VehicleModel {
       if (child.isMesh && child.material) {
         // Dirtiness turns color grimy / increases roughness
         if (component.cleanlinessPercentage < 50) {
-          child.material.roughness = THREE.MathUtils.lerp(0.85, 0.3, component.cleanlinessPercentage / 50);
+          child.material.roughness = THREE.MathUtils.lerp(0.85, 0.25, component.cleanlinessPercentage / 50);
+        } else {
+          child.material.roughness = 0.25;
         }
 
         // Fender dent visual representation
         if (component.id === 'front_right_quarter_panel' && component.dentDepthMm > 0) {
           child.scale.set(1.0, 1.0 - (component.dentDepthMm * 0.04), 1.0);
-        } else {
+        } else if (component.id === 'front_right_quarter_panel') {
           child.scale.set(1.0, 1.0, 1.0);
         }
       }
