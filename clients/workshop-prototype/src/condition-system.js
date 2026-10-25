@@ -47,6 +47,25 @@ export class VehicleConditionSystem {
     return this.state;
   }
 
+  updateElectricalCondition(electricalSystem, faultManager) {
+    let score = 100.0;
+    if (faultManager) {
+      const activeCount = faultManager.getActiveFaults().length;
+      score -= activeCount * 18.0;
+    }
+    if (electricalSystem && electricalSystem.battery) {
+      if (electricalSystem.battery.healthPercentage < 70) {
+        score -= (70 - electricalSystem.battery.healthPercentage) * 0.5;
+      }
+      if (electricalSystem.battery.soc < 0.5) {
+        score -= (0.5 - electricalSystem.battery.soc) * 40.0;
+      }
+    }
+    this.state.electrical = Math.max(10, Math.min(100, Math.round(score)));
+    this.evaluateSafety();
+    return this.state.electrical;
+  }
+
   evaluateSafety() {
     // Strict roadworthy rule:
     // Requires structural >= 70, mechanical >= 50, tires >= 40, electrical >= 50

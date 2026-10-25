@@ -224,6 +224,102 @@ export class VehicleModel {
     fenderMesh.userData = { componentId: 'front_right_quarter_panel', surfaceId: 'surface_body_exterior' };
     this.vehicleRoot.add(fenderMesh);
     this.interactiveMeshes.set('front_right_quarter_panel', fenderMesh);
+
+    // -------------------------------------------------------------
+    // INTERACTIVE PART 6: 12V SLI Automotive Lead-Acid Battery
+    // -------------------------------------------------------------
+    const batteryGroup = new THREE.Group();
+    batteryGroup.position.set(-0.55, 0.58, 1.35);
+
+    // Battery Case (Black textured polypropylene)
+    const batCaseGeo = new THREE.BoxGeometry(0.24, 0.20, 0.28);
+    const batCaseMat = new THREE.MeshStandardMaterial({ color: 0x161b22, roughness: 0.8 });
+    const batCaseMesh = new THREE.Mesh(batCaseGeo, batCaseMat);
+    batteryGroup.add(batCaseMesh);
+
+    // Red Positive Post (+)
+    const posPostGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.04, 16);
+    const posPostMat = new THREE.MeshStandardMaterial({ color: 0xcf222e, metalness: 0.6, roughness: 0.3 });
+    const posPost = new THREE.Mesh(posPostGeo, posPostMat);
+    posPost.position.set(-0.06, 0.12, 0.08);
+    batteryGroup.add(posPost);
+
+    // Negative Post (-)
+    const negPostGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.04, 16);
+    const negPostMat = new THREE.MeshStandardMaterial({ color: 0x0969da, metalness: 0.6, roughness: 0.3 });
+    const negPost = new THREE.Mesh(negPostGeo, negPostMat);
+    negPost.position.set(0.06, 0.12, -0.08);
+    batteryGroup.add(negPost);
+
+    batteryGroup.userData = { componentId: 'battery_12v', surfaceId: 'surface_engine_bay' };
+    this.vehicleRoot.add(batteryGroup);
+    this.interactiveMeshes.set('battery_12v', batteryGroup);
+
+    // -------------------------------------------------------------
+    // INTERACTIVE PART 7: Engine Block to Chassis Ground Strap
+    // -------------------------------------------------------------
+    const groundStrapGeo = new THREE.BoxGeometry(0.25, 0.015, 0.04);
+    const groundStrapMat = new THREE.MeshStandardMaterial({
+      color: 0xb08800, // Braided Copper
+      metalness: 0.9,
+      roughness: 0.35
+    });
+    const groundStrapMesh = new THREE.Mesh(groundStrapGeo, groundStrapMat);
+    groundStrapMesh.position.set(-0.35, 0.38, 1.15);
+    groundStrapMesh.rotation.z = Math.PI / 12;
+    groundStrapMesh.userData = { componentId: 'engine_ground_strap', surfaceId: 'surface_engine_bay' };
+    this.vehicleRoot.add(groundStrapMesh);
+    this.interactiveMeshes.set('engine_ground_strap', groundStrapMesh);
+
+    // -------------------------------------------------------------
+    // INTERACTIVE PART 8: Under-Hood Fuse & Relay Box
+    // -------------------------------------------------------------
+    const fuseBoxGeo = new THREE.BoxGeometry(0.18, 0.12, 0.22);
+    const fuseBoxMat = new THREE.MeshStandardMaterial({ color: 0x24292f, roughness: 0.5 });
+    const fuseBoxMesh = new THREE.Mesh(fuseBoxGeo, fuseBoxMat);
+    fuseBoxMesh.position.set(-0.62, 0.62, 0.95);
+    fuseBoxMesh.userData = { componentId: 'underhood_fuse_box', surfaceId: 'surface_engine_bay' };
+    this.vehicleRoot.add(fuseBoxMesh);
+    this.interactiveMeshes.set('underhood_fuse_box', fuseBoxMesh);
+
+    // -------------------------------------------------------------
+    // INTERACTIVE PART 9: Reduction Gear Starter Motor
+    // -------------------------------------------------------------
+    const starterGroup = new THREE.Group();
+    starterGroup.position.set(0.32, 0.28, 1.1);
+
+    const starterMotorGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.20, 24);
+    const starterMotorMat = new THREE.MeshStandardMaterial({ color: 0x6e7681, metalness: 0.85, roughness: 0.3 });
+    const starterMotor = new THREE.Mesh(starterMotorGeo, starterMotorMat);
+    starterMotor.rotation.x = Math.PI / 2;
+    starterGroup.add(starterMotor);
+
+    const solenoidGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.14, 16);
+    const solenoid = new THREE.Mesh(solenoidGeo, starterMotorMat);
+    solenoid.rotation.x = Math.PI / 2;
+    solenoid.position.set(0, 0.07, 0.02);
+    starterGroup.add(solenoid);
+
+    starterGroup.userData = { componentId: 'starter_motor', surfaceId: 'surface_engine_bay' };
+    this.vehicleRoot.add(starterGroup);
+    this.interactiveMeshes.set('starter_motor', starterGroup);
+
+    // -------------------------------------------------------------
+    // INTERACTIVE PART 10: Front Right Headlight Assembly
+    // -------------------------------------------------------------
+    const headlightGeo = new THREE.BoxGeometry(0.28, 0.16, 0.20);
+    const headlightMat = new THREE.MeshStandardMaterial({
+      color: 0xf0f6fc,
+      metalness: 0.4,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.85
+    });
+    const headlightMesh = new THREE.Mesh(headlightGeo, headlightMat);
+    headlightMesh.position.set(0.72, 0.58, 2.05);
+    headlightMesh.userData = { componentId: 'headlight_assembly_fr', surfaceId: 'surface_body_exterior' };
+    this.vehicleRoot.add(headlightMesh);
+    this.interactiveMeshes.set('headlight_assembly_fr', headlightMesh);
   }
 
   createStaticWheel(x, y, z) {

@@ -94,6 +94,18 @@
               <span class="tool-icon">⛽</span>
               <span>Fuel Dispenser Nozzle</span>
             </button>
+            <button class="tool-btn" data-tool="TOOL_MULTIMETER">
+              <span class="tool-icon">📟</span>
+              <span>Digital Multimeter (DMM)</span>
+            </button>
+          </div>
+
+          <!-- Electrical Missions Toggle Button -->
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bg-panel-border);">
+            <button id="btn-toggle-missions" class="btn-primary" style="width: 100%; font-size: 11px; padding: 7px 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>⚡</span>
+              <span>Diagnostic Missions (4)</span>
+            </button>
           </div>
 
           <!-- Socket Set Tray -->
@@ -131,6 +143,176 @@
           </div>
         </div>
       </aside>
+
+      <!-- Center Diagnostic & Floating Equipment Layer -->
+      <div class="center-equipment-layer">
+        <!-- Floating Digital Multimeter Panel -->
+        <div id="dmm-panel" class="dmm-panel interactive-panel" style="display: none;">
+          <div class="dmm-casing">
+            <!-- DMM Header -->
+            <div class="dmm-header">
+              <div class="dmm-brand">
+                <span class="dmm-logo">MECH-METER</span>
+                <span class="dmm-model">TRUE RMS AUTO-RANGING DMM</span>
+              </div>
+              <div class="dmm-status-badges">
+                <span id="dmm-fuse-status" class="badge-fuse ok">10A FUSE OK</span>
+                <span id="dmm-beeper-icon" class="dmm-beeper-pill">))) BEEP</span>
+              </div>
+            </div>
+
+            <!-- Backlit LCD Readout -->
+            <div class="dmm-lcd">
+              <div class="dmm-lcd-top">
+                <span id="dmm-lcd-mode-tag">DC VOLTS</span>
+                <span id="dmm-lcd-hazard-tag" class="lcd-hazard" style="display: none;">DANGER: LIVE BUS</span>
+              </div>
+              <div class="dmm-lcd-main">
+                <span id="dmm-lcd-value">0.00</span>
+                <span id="dmm-lcd-unit">V DC</span>
+              </div>
+              <div id="dmm-lcd-message" class="dmm-lcd-footer">LEADS DISCONNECTED</div>
+            </div>
+
+            <!-- Rotary Mode Selector Dial -->
+            <div class="dmm-controls-section">
+              <div class="dmm-section-title">FUNCTION SELECTOR</div>
+              <div class="dmm-mode-grid">
+                <button class="dmm-mode-btn" data-mode="OFF">OFF</button>
+                <button class="dmm-mode-btn active" data-mode="DC_VOLTS">V DC</button>
+                <button class="dmm-mode-btn" data-mode="RESISTANCE">&Omega; OHMS</button>
+                <button class="dmm-mode-btn" data-mode="CONTINUITY">))) CONT</button>
+                <button class="dmm-mode-btn" data-mode="DC_AMPS">10A DC</button>
+              </div>
+            </div>
+
+            <!-- Input Jacks & Probes Setup -->
+            <div class="dmm-controls-section">
+              <div class="dmm-section-title">TERMINAL JACK CONFIGURATION</div>
+              <div class="dmm-jack-selector">
+                <label class="jack-radio-label">
+                  <input type="radio" name="dmm-red-jack" value="V_OHM" checked>
+                  <span>V / &Omega; / Cont Jack</span>
+                </label>
+                <label class="jack-radio-label">
+                  <input type="radio" name="dmm-red-jack" value="A_10A">
+                  <span style="color: var(--accent-amber);">10A Current (Series Only)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Probe Test Points -->
+            <div class="dmm-controls-section">
+              <div class="dmm-section-title">PROBE TEST POINTS</div>
+              <div class="probe-select-grid">
+                <div class="probe-col">
+                  <span class="probe-label red">RED PROBE (+)</span>
+                  <select id="dmm-red-probe-select" class="dmm-select"></select>
+                </div>
+                <div class="probe-col">
+                  <span class="probe-label black">BLACK PROBE (COM &minus;)</span>
+                  <select id="dmm-black-probe-select" class="dmm-select"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- DMM Action Buttons -->
+            <div class="dmm-footer-actions">
+              <button id="dmm-measure-btn" class="btn-primary" style="flex: 1;">⚡ Read Value</button>
+              <button id="dmm-replace-fuse-btn" class="btn-secondary" style="font-size: 10px;">Replace 10A Fuse</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vehicle Cockpit & Electrical Control Switch Panel -->
+        <div id="cockpit-panel" class="cockpit-panel interactive-panel">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Cockpit & Electrical Controls</span>
+            <span id="cockpit-voltage-badge" style="font-family: var(--font-mono); color: var(--accent-green); font-size: 11px;">12.65V</span>
+          </div>
+          <div class="cockpit-controls-grid">
+            <div class="cockpit-item">
+              <span class="cockpit-label">IGNITION KEY:</span>
+              <div class="ignition-btn-group">
+                <button class="ign-btn active" data-ign="OFF">OFF</button>
+                <button class="ign-btn" data-ign="ACC">ACC</button>
+                <button class="ign-btn" data-ign="ON">ON</button>
+                <button class="ign-btn" data-ign="START">START</button>
+              </div>
+            </div>
+            <div class="cockpit-switches">
+              <button id="btn-toggle-headlights" class="switch-toggle-btn">
+                <span>Headlights:</span>
+                <span id="status-headlights" class="switch-status off">OFF</span>
+              </button>
+              <button id="btn-toggle-auxlights" class="switch-toggle-btn">
+                <span>Fog / Aux Lights:</span>
+                <span id="status-auxlights" class="switch-status off">OFF</span>
+              </button>
+              <button id="btn-toggle-domelight" class="switch-toggle-btn">
+                <span>Cabin Dome Light:</span>
+                <span id="status-domelight" class="switch-status off">OFF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Electrical Diagnostic Missions Modal -->
+        <div id="missions-modal" class="missions-modal interactive-panel" style="display: none;">
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>⚡ Automotive Electrical Diagnostic Missions</span>
+            <button id="btn-close-missions" class="close-x-btn">&times;</button>
+          </div>
+          <div class="missions-content">
+            <!-- Mission Selector Tabs -->
+            <div class="mission-tabs">
+              <button class="mission-tab-btn active" data-mission-id="mission_slow_crank">1. Slow Cranking</button>
+              <button class="mission-tab-btn" data-mission-id="mission_dead_aux_lights">2. Dead Aux Lights</button>
+              <button class="mission-tab-btn" data-mission-id="mission_overnight_drain">3. Overnight Drain</button>
+              <button class="mission-tab-btn" data-mission-id="mission_intermittent_accessory">4. Dim Headlight</button>
+            </div>
+
+            <!-- Complaint Card -->
+            <div class="mission-card">
+              <div id="mission-title" class="mission-title">The Slow-Cranking Vehicle</div>
+              <div id="mission-complaint" class="mission-complaint">
+                Customer states: "The engine cranks sluggishly in the morning and sounds like it barely has enough power to turn over."
+              </div>
+              <div id="mission-hint" class="mission-hint">
+                Tip: A bad ground strap creates a high voltage drop between the engine block and chassis ground under starter load!
+              </div>
+            </div>
+
+            <!-- Objectives Checklist -->
+            <div class="mission-objectives-section">
+              <div class="dmm-section-title">DIAGNOSTIC EVIDENCE CHECKLIST</div>
+              <ul id="mission-objectives-list" class="objectives-list"></ul>
+            </div>
+
+            <!-- Diagnosis & Verification Actions -->
+            <div class="mission-action-bar">
+              <div class="diag-select-container">
+                <span style="font-size: 11px; color: var(--text-muted);">Root Cause Diagnosis:</span>
+                <select id="mission-diag-select" class="dmm-select">
+                  <option value="">-- Select Root Cause Diagnosis --</option>
+                  <option value="FAULT_HIGH_RES_GROUND">High-Resistance Engine Ground Strap</option>
+                  <option value="FAULT_BLOWN_AUX_FUSE">Blown Auxiliary Lighting Fuse</option>
+                  <option value="FAULT_PARASITIC_DRAIN">Parasitic Battery Drain (Stuck Cabin Switch)</option>
+                  <option value="FAULT_CORRODED_CONNECTOR">Corroded Headlight Harness Connector</option>
+                  <option value="FAULT_DAMAGED_WIRE">Damaged / Broken Feed Wire</option>
+                  <option value="FAULT_WEAK_BATTERY">Sulfated / Degraded Battery</option>
+                </select>
+              </div>
+              <div class="mission-btn-row">
+                <button id="btn-submit-diagnosis" class="btn-secondary">Submit Diagnosis</button>
+                <button id="btn-execute-repair" class="btn-primary">Perform Verified Repair</button>
+                <button id="btn-verify-repair" class="btn-primary" style="background: var(--accent-green);">Verify Post-Repair</button>
+              </div>
+              <div id="mission-result-banner" class="mission-result-banner" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Right Sidebar: Component Inspection HUD -->
       <aside class="right-sidebar">

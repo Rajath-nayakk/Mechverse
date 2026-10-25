@@ -24,7 +24,8 @@ export const AVAILABLE_TOOLS = [
   { id: 'TOOL_GLASS_CLEANER', name: 'Ammonia-Free Glass Cleaner', category: 'CLEANING' },
   { id: 'TOOL_VACUUM_CLEANER', name: 'Wet/Dry Shop Vacuum', category: 'CLEANING' },
   { id: 'TOOL_DENT_PULLER', name: 'Suction Dent Puller', category: 'BODYWORK' },
-  { id: 'TOOL_FUEL_NOZZLE', name: 'Fuel Dispenser Nozzle', category: 'REFUELING' }
+  { id: 'TOOL_FUEL_NOZZLE', name: 'Fuel Dispenser Nozzle', category: 'REFUELING' },
+  { id: 'TOOL_MULTIMETER', name: 'Digital Multimeter (DMM)', category: 'ELECTRICAL_DIAGNOSTIC' }
 ];
 
 export function validateSocketCompatibility(tool, socket, fastener) {

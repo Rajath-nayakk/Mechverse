@@ -94,3 +94,24 @@ No single "health percentage" is used. The vehicle condition is tracked as a dec
 10. `CleanlinessCondition`: Contaminant mass (mud, grease, road salt, brake dust) per zone.
 11. `MaintenanceHistory`: Immutable ledger of timestamped services, torque events, and technician IDs.
 12. `SafetyInspectionStatus`: Roadworthiness certification boolean and compliance faults list.
+
+---
+
+### 7. Electrical System, Circuit Physics & Battery Simulation Assumptions
+
+#### 7.1 DC Circuit Solver (Modified Nodal Analysis)
+- **Fidelity Level:** Level A (Physical Laws: Ohm's Law, KCL, KVL, Joule's Power).
+- **Assumptions:** Linear DC steady-state analysis. High-frequency AC impedance, inductive kickback spikes, and transient capacitive charging curves are simplified to lumped resistances and switch states.
+- **Topological Stability:** Minimal artificial ground conductance ($G_{\text{min}} = 10^{-12}\ \Omega^{-1}$) ensures positive definiteness and eliminates singularity on floating diagnostic test nodes without altering physical measurement accuracy.
+
+#### 7.2 Automotive SLI Battery Model
+- **Fidelity Level:** Level A (Thevenin-equivalent circuit representation).
+- **Equivalent Circuit:** Open-circuit electrochemical potential $V_{\text{OC}}(\text{SOC})$ in series with dynamic internal resistance $R_{\text{internal}}$.
+- **Limitations:** Temperature effects are modeled linearly; electrolyte acid stratification and complex electrochemical diffusion kinetics (Randles cell Warburg impedance) are abstracted for real-time educational gameplay stability.
+- **Reference Values:** Configurable educational defaults (65 Ah capacity, 15 m$\Omega$ healthy internal resistance, 140 m$\Omega$ degraded resistance) are calibrated for realistic automotive service diagnostics.
+
+#### 7.3 Digital Multimeter (DMM) & Measurement Physics
+- **Input Impedance:** Modeled at $10\text{ M}\Omega$ for DC voltage modes, introducing negligible circuit loading ($<0.001\%$) consistent with professional automotive meters.
+- **Current Measurement:** Modeled strictly in series through a low-resistance $0.01\ \Omega$ burden shunt. Connecting across voltage sources exceeds the 10A ceramic fuse rating and triggers realistic fuse blowout.
+- **Safety Rejection:** Resistance and continuity measurements require de-energized circuits; attempting to measure live rails triggers an explicit `ERR: POWER ON` hazard block.
+

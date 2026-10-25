@@ -560,3 +560,522 @@ input[type="range"] {
   color: var(--text-main);
   font-family: var(--font-mono);
 }
+
+/* =========================================================
+   PHASE 3: ELECTRICAL LABORATORY & DMM STYLING
+   ========================================================= */
+
+.center-equipment-layer {
+  position: absolute;
+  top: 70px;
+  left: 360px;
+  right: 380px;
+  bottom: 60px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+  z-index: 25;
+}
+
+/* Floating Multimeter */
+.dmm-panel {
+  pointer-events: auto;
+  width: 380px;
+  background: #1e2229;
+  border: 2px solid #e3b341; /* Fluke Yellow accent */
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+  padding: 14px;
+  font-family: var(--font-family);
+  animation: fadeInDown 0.25s ease;
+}
+
+.dmm-casing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dmm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dmm-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.dmm-logo {
+  font-weight: 900;
+  font-size: 13px;
+  color: #f1c40f;
+  letter-spacing: 1px;
+}
+
+.dmm-model {
+  font-size: 8px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.dmm-status-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.badge-fuse {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.badge-fuse.ok {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+}
+
+.badge-fuse.blown {
+  background: rgba(248, 81, 73, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+  animation: blink 0.8s infinite;
+}
+
+.dmm-beeper-pill {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #21262d;
+  color: var(--text-muted);
+  border: 1px solid #30363d;
+}
+
+.dmm-beeper-pill.beeping {
+  background: #f1c40f;
+  color: #000;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+/* Backlit LCD */
+.dmm-lcd {
+  background: #7ca89a; /* Backlit green-grey LCD tone */
+  color: #0d1b15;
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 2px inset #4a675e;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 85px;
+}
+
+.dmm-lcd-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #1a382c;
+}
+
+.lcd-hazard {
+  background: #cf222e;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 900;
+}
+
+.dmm-lcd-main {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+#dmm-lcd-value {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+#dmm-lcd-unit {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dmm-lcd-footer {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: #214335;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Controls */
+.dmm-controls-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dmm-section-title {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.dmm-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.dmm-mode-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: var(--text-main);
+  padding: 6px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.dmm-mode-btn:hover {
+  background: #30363d;
+}
+
+.dmm-mode-btn.active {
+  background: #f1c40f;
+  color: #000;
+  border-color: #f1c40f;
+  box-shadow: 0 0 8px rgba(241, 196, 15, 0.4);
+}
+
+.dmm-jack-selector {
+  display: flex;
+  gap: 12px;
+  background: rgba(13, 17, 23, 0.6);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--bg-panel-border);
+}
+
+.jack-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.probe-select-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.probe-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.probe-label {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.probe-label.red {
+  color: #f85149;
+}
+
+.probe-label.black {
+  color: #8b949e;
+}
+
+.dmm-select {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: var(--text-main);
+  font-size: 10px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.dmm-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.dmm-footer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Cockpit / Switch Panel */
+.cockpit-panel {
+  pointer-events: auto;
+  width: 440px;
+  background: var(--bg-panel);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.cockpit-controls-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cockpit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cockpit-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ignition-btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.ign-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: var(--text-main);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ign-btn:hover {
+  background: #30363d;
+}
+
+.ign-btn.active {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+}
+
+.ign-btn[data-ign="START"].active {
+  background: var(--accent-amber);
+  color: #000;
+}
+
+.cockpit-switches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.switch-toggle-btn {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: var(--text-main);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.switch-toggle-btn:hover {
+  background: #21262d;
+}
+
+.switch-status.on {
+  color: var(--accent-green);
+  font-weight: 800;
+}
+
+.switch-status.off {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Diagnostic Missions Modal */
+.missions-modal {
+  pointer-events: auto;
+  width: 580px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #161b22;
+  border: 1px solid var(--accent-cyan);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+  padding: 14px 18px;
+  animation: fadeInDown 0.25s ease;
+}
+
+.close-x-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.close-x-btn:hover {
+  color: #fff;
+}
+
+.missions-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.mission-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.mission-tab-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: var(--text-main);
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mission-tab-btn.active {
+  background: var(--accent-cyan);
+  color: #000;
+  font-weight: 800;
+  border-color: var(--accent-cyan);
+}
+
+.mission-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid var(--bg-panel-border);
+  border-left: 3px solid var(--accent-cyan);
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+.mission-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+
+.mission-complaint {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-main);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.mission-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.objectives-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.objective-item {
+  background: #21262d;
+  border: 1px solid #30363d;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.objective-item.done {
+  border-color: var(--accent-green);
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--accent-green);
+}
+
+.mission-action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bg-panel-border);
+}
+
+.mission-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mission-result-banner {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.mission-result-banner.pass {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+}
+
+.mission-result-banner.fail {
+  background: rgba(248, 81, 73, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+

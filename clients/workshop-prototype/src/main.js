@@ -6,10 +6,18 @@ import { GarageWorld } from './garage-world.js';
 import { VehicleModel } from './vehicle-model.js';
 import { InteractionManager } from './interaction-manager.js';
 import { SOCKET_SET, AVAILABLE_TOOLS } from './socket-system.js';
+import { VehicleElectricalSystem } from './electrical-system.js';
+import { DigitalMultimeter, MULTIMETER_MODES, METER_LEAD_JACKS, TEST_POINTS } from './multimeter-system.js';
+import { ElectricalFaultManager, FAULT_TYPES } from './electrical-faults.js';
+import { ElectricalMissionManager, MISSIONS } from './electrical-missions.js';
 
 // Setup Application State
 const components = JSON.parse(JSON.stringify(INITIAL_COMPONENTS));
 const conditionSystem = new VehicleConditionSystem();
+const electricalSystem = new VehicleElectricalSystem();
+const faultManager = new ElectricalFaultManager(electricalSystem);
+const multimeter = new DigitalMultimeter(electricalSystem);
+const missionManager = new ElectricalMissionManager(electricalSystem, faultManager, multimeter);
 
 // Canvas & Three.js Renderer
 const container = document.getElementById('canvas-container');
@@ -279,10 +287,36 @@ function buildDynamicActions(comp) {
     btnFuel.onclick = () => interaction.refuelVehicle(comp);
     dynamicActionsEl.appendChild(btnFuel);
   }
+
+  // Electrical Component Multimeter Probing Action
+  if (comp.testPoints && comp.testPoints.length > 0) {
+    const btnProbe = document.createElement('button');
+    btnProbe.className = 'action-btn';
+    btnProbe.style.background = 'rgba(241, 196, 15, 0.15)';
+    btnProbe.style.borderColor = '#f1c40f';
+    btnProbe.innerHTML = `<span>⚡</span> Probe with Multimeter (${comp.testPoints[0]})`;
+    btnProbe.onclick = () => {
+      // Auto-equip multimeter
+      const dmmBtn = document.querySelector('.tool-btn[data-tool="TOOL_MULTIMETER"]');
+      if (dmmBtn) dmmBtn.click();
+      
+      const redSelect = document.getElementById('dmm-red-probe-select');
+      const blackSelect = document.getElementById('dmm-black-probe-select');
+      if (redSelect && blackSelect) {
+        redSelect.value = comp.testPoints[0];
+        blackSelect.value = comp.testPoints[1] || 'GND';
+        multimeter.connectProbes(redSelect.value, blackSelect.value);
+        refreshDMMDisplay();
+      }
+      showToast(`Multimeter probes connected to ${comp.testPoints[0]} and ${comp.testPoints[1] || 'GND'}.`, 'success');
+    };
+    dynamicActionsEl.appendChild(btnProbe);
+  }
 }
 
 // Update 12-Category Condition HUD in Bottom Bar
 function updateConditionHUD() {
+  conditionSystem.updateElectricalCondition(electricalSystem, faultManager);
   const cond = conditionSystem.state;
   document.getElementById('cond-mech').textContent = `${cond.mechanical}%`;
   document.getElementById('cond-elec').textContent = `${cond.electrical}%`;
@@ -335,6 +369,15 @@ toolButtons.forEach(btn => {
 
     torqueSliderEl.value = interaction.configuredWrenchTorqueNm;
     torqueDisplayEl.textContent = `${interaction.configuredWrenchTorqueNm} N*m`;
+
+    // Show / Hide Multimeter Panel
+    const dmmPanel = document.getElementById('dmm-panel');
+    if (dmmPanel) {
+      dmmPanel.style.display = (toolId === 'TOOL_MULTIMETER') ? 'block' : 'none';
+      if (toolId === 'TOOL_MULTIMETER') {
+        refreshDMMDisplay();
+      }
+    }
 
     if (interaction.selectedComponent) {
       buildDynamicActions(interaction.selectedComponent);
@@ -398,7 +441,308 @@ window.addEventListener('resize', () => {
 
 // Initial Telemetry Update
 conditionSystem.updateFromComponents(components);
+conditionSystem.updateElectricalCondition(electricalSystem, faultManager);
 updateInspectionUI(components[0]); // Select oil filter by default
+
+// =========================================================
+// ELECTRICAL SYSTEM & DMM UI INTERACTION LOGIC
+// =========================================================
+
+function refreshDMMDisplay() {
+  const reading = multimeter.takeMeasurement();
+  const valEl = document.getElementById('dmm-lcd-value');
+  const unitEl = document.getElementById('dmm-lcd-unit');
+  const modeTagEl = document.getElementById('dmm-lcd-mode-tag');
+  const hazardEl = document.getElementById('dmm-lcd-hazard-tag');
+  const msgEl = document.getElementById('dmm-lcd-message');
+  const beeperEl = document.getElementById('dmm-beeper-icon');
+  const fuseStatusEl = document.getElementById('dmm-fuse-status');
+
+  if (valEl) valEl.textContent = reading.display;
+  if (unitEl) unitEl.textContent = reading.unit;
+  if (modeTagEl) modeTagEl.textContent = multimeter.mode.replace('_', ' ');
+  if (hazardEl) hazardEl.style.display = reading.isHazard ? 'inline-block' : 'none';
+  if (msgEl) msgEl.textContent = reading.message || (multimeter.redProbePoint ? `PROBING: ${multimeter.redProbePoint} -> ${multimeter.blackProbePoint}` : 'LEADS OPEN');
+
+  if (beeperEl) {
+    beeperEl.classList.toggle('beeping', reading.isContinuityBeep);
+  }
+
+  if (fuseStatusEl) {
+    if (multimeter.isMeterFuseBlown) {
+      fuseStatusEl.className = 'badge-fuse blown';
+      fuseStatusEl.textContent = '10A FUSE BLOWN';
+    } else {
+      fuseStatusEl.className = 'badge-fuse ok';
+      fuseStatusEl.textContent = '10A FUSE OK';
+    }
+  }
+
+  // Update Cockpit Voltage Display
+  const cockpitVoltEl = document.getElementById('cockpit-voltage-badge');
+  if (cockpitVoltEl) {
+    const vBat = electricalSystem.battery.getTerminalVoltage();
+    cockpitVoltEl.textContent = `${vBat.toFixed(2)}V`;
+  }
+
+  // Record evidence in active mission if open
+  if (missionManager.activeMission) {
+    missionManager.recordMeasurementEvidence();
+    renderMissionObjectives();
+  }
+}
+
+function initDMMControls() {
+  // Populate Probe Test Points
+  const redSelect = document.getElementById('dmm-red-probe-select');
+  const blackSelect = document.getElementById('dmm-black-probe-select');
+
+  if (redSelect && blackSelect) {
+    redSelect.innerHTML = '<option value="">-- Disconnected --</option>';
+    blackSelect.innerHTML = '<option value="">-- Disconnected --</option>';
+
+    TEST_POINTS.forEach(tp => {
+      const optR = document.createElement('option');
+      optR.value = tp.id;
+      optR.textContent = `${tp.id} (${tp.name})`;
+      redSelect.appendChild(optR);
+
+      const optB = document.createElement('option');
+      optB.value = tp.id;
+      optB.textContent = `${tp.id} (${tp.name})`;
+      blackSelect.appendChild(optB);
+    });
+
+    // Default Probes: BAT_POS and GND
+    redSelect.value = 'BAT_POS';
+    blackSelect.value = 'GND';
+    multimeter.connectProbes('BAT_POS', 'GND');
+
+    redSelect.onchange = () => {
+      multimeter.connectProbes(redSelect.value || null, blackSelect.value || null);
+      refreshDMMDisplay();
+    };
+    blackSelect.onchange = () => {
+      multimeter.connectProbes(redSelect.value || null, blackSelect.value || null);
+      refreshDMMDisplay();
+    };
+  }
+
+  // Mode Buttons
+  const modeButtons = document.querySelectorAll('.dmm-mode-btn');
+  modeButtons.forEach(btn => {
+    btn.onclick = () => {
+      modeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const modeKey = btn.dataset.mode;
+      multimeter.setMode(MULTIMETER_MODES[modeKey]);
+      refreshDMMDisplay();
+    };
+  });
+
+  // Lead Jack Radios
+  document.querySelectorAll('input[name="dmm-red-jack"]').forEach(radio => {
+    radio.onchange = (e) => {
+      multimeter.setLeadJack(e.target.value);
+      refreshDMMDisplay();
+    };
+  });
+
+  // Read Value Button
+  const measureBtn = document.getElementById('dmm-measure-btn');
+  if (measureBtn) {
+    measureBtn.onclick = () => {
+      refreshDMMDisplay();
+      showToast(`Measurement taken: ${multimeter.lastReading.display} ${multimeter.lastReading.unit}`, 'info');
+    };
+  }
+
+  // Replace Fuse Button
+  const replaceFuseBtn = document.getElementById('dmm-replace-fuse-btn');
+  if (replaceFuseBtn) {
+    replaceFuseBtn.onclick = () => {
+      const res = multimeter.replaceMeterFuse();
+      refreshDMMDisplay();
+      showToast(res.message, 'success');
+    };
+  }
+}
+
+function initCockpitControls() {
+  // Ignition Key Buttons
+  const ignButtons = document.querySelectorAll('.ign-btn');
+  ignButtons.forEach(btn => {
+    btn.onclick = () => {
+      ignButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const ignState = btn.dataset.ign;
+      electricalSystem.setIgnition(ignState);
+      refreshDMMDisplay();
+      showToast(`Ignition switch turned to: ${ignState}`, 'info');
+      updateConditionHUD();
+    };
+  });
+
+  // Toggle Switches
+  const btnHeadlights = document.getElementById('btn-toggle-headlights');
+  const statusHeadlights = document.getElementById('status-headlights');
+  if (btnHeadlights && statusHeadlights) {
+    btnHeadlights.onclick = () => {
+      electricalSystem.headlightSwitch = !electricalSystem.headlightSwitch;
+      electricalSystem.solveNetwork();
+      statusHeadlights.textContent = electricalSystem.headlightSwitch ? 'ON' : 'OFF';
+      statusHeadlights.className = `switch-status ${electricalSystem.headlightSwitch ? 'on' : 'off'}`;
+      refreshDMMDisplay();
+    };
+  }
+
+  const btnAuxLights = document.getElementById('btn-toggle-auxlights');
+  const statusAuxLights = document.getElementById('status-auxlights');
+  if (btnAuxLights && statusAuxLights) {
+    btnAuxLights.onclick = () => {
+      electricalSystem.auxLightSwitch = !electricalSystem.auxLightSwitch;
+      electricalSystem.solveNetwork();
+      statusAuxLights.textContent = electricalSystem.auxLightSwitch ? 'ON' : 'OFF';
+      statusAuxLights.className = `switch-status ${electricalSystem.auxLightSwitch ? 'on' : 'off'}`;
+      refreshDMMDisplay();
+    };
+  }
+
+  const btnDomeLight = document.getElementById('btn-toggle-domelight');
+  const statusDomeLight = document.getElementById('status-domelight');
+  if (btnDomeLight && statusDomeLight) {
+    btnDomeLight.onclick = () => {
+      electricalSystem.cabinDomeSwitch = !electricalSystem.cabinDomeSwitch;
+      electricalSystem.solveNetwork();
+      statusDomeLight.textContent = electricalSystem.cabinDomeSwitch ? 'ON' : 'OFF';
+      statusDomeLight.className = `switch-status ${electricalSystem.cabinDomeSwitch ? 'on' : 'off'}`;
+      refreshDMMDisplay();
+    };
+  }
+}
+
+function renderMissionObjectives() {
+  const listEl = document.getElementById('mission-objectives-list');
+  if (!listEl || !missionManager.activeMission) return;
+
+  listEl.innerHTML = '';
+  missionManager.activeMission.objectives.forEach(obj => {
+    const li = document.createElement('li');
+    li.className = `objective-item ${obj.completed ? 'done' : ''}`;
+    li.innerHTML = `<span>${obj.completed ? '✅' : '⚪'}</span> <span>${obj.desc}</span>`;
+    listEl.appendChild(li);
+  });
+}
+
+function initMissionsUI() {
+  const modal = document.getElementById('missions-modal');
+  const btnToggle = document.getElementById('btn-toggle-missions');
+  const btnClose = document.getElementById('btn-close-missions');
+
+  if (btnToggle && modal) {
+    btnToggle.onclick = () => {
+      modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
+      if (modal.style.display === 'block' && !missionManager.activeMission) {
+        loadMission('mission_slow_crank');
+      }
+    };
+  }
+
+  if (btnClose && modal) {
+    btnClose.onclick = () => { modal.style.display = 'none'; };
+  }
+
+  // Mission Tabs
+  const tabButtons = document.querySelectorAll('.mission-tab-btn');
+  tabButtons.forEach(btn => {
+    btn.onclick = () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const missionId = btn.dataset.missionId;
+      loadMission(missionId);
+    };
+  });
+
+  // Submit Diagnosis Button
+  const btnSubmitDiag = document.getElementById('btn-submit-diagnosis');
+  const diagSelect = document.getElementById('mission-diag-select');
+  const resultBanner = document.getElementById('mission-result-banner');
+
+  if (btnSubmitDiag && diagSelect && resultBanner) {
+    btnSubmitDiag.onclick = () => {
+      const selectedFault = diagSelect.value;
+      if (!selectedFault) {
+        showToast('Please select a suspected root cause diagnosis.', 'error');
+        return;
+      }
+      const res = missionManager.submitDiagnosis(selectedFault);
+      resultBanner.style.display = 'block';
+      resultBanner.className = `mission-result-banner ${res.correct ? 'pass' : 'fail'}`;
+      resultBanner.textContent = res.message;
+      showToast(res.message, res.correct ? 'success' : 'error');
+      renderMissionObjectives();
+      updateConditionHUD();
+    };
+  }
+
+  // Execute Repair Button
+  const btnRepair = document.getElementById('btn-execute-repair');
+  if (btnRepair) {
+    btnRepair.onclick = () => {
+      const res = missionManager.executeRepair();
+      if (res.success) {
+        showToast(res.message, 'success');
+        renderMissionObjectives();
+        refreshDMMDisplay();
+        updateConditionHUD();
+      } else {
+        showToast(res.message, 'error');
+      }
+    };
+  }
+
+  // Verify Repair Button
+  const btnVerify = document.getElementById('btn-verify-repair');
+  if (btnVerify) {
+    btnVerify.onclick = () => {
+      const res = missionManager.verifyRepair();
+      resultBanner.style.display = 'block';
+      resultBanner.className = `mission-result-banner ${res.verified ? 'pass' : 'fail'}`;
+      resultBanner.textContent = res.message;
+      if (res.verified) {
+        showToast(`Mission Verified! Score: ${res.report.score}/100.`, 'success');
+      } else {
+        showToast(res.message, 'error');
+      }
+      renderMissionObjectives();
+      refreshDMMDisplay();
+      updateConditionHUD();
+    };
+  }
+}
+
+function loadMission(missionId) {
+  const res = missionManager.startMission(missionId);
+  const m = res.mission;
+
+  const titleEl = document.getElementById('mission-title');
+  const complaintEl = document.getElementById('mission-complaint');
+  const hintEl = document.getElementById('mission-hint');
+  const resultBanner = document.getElementById('mission-result-banner');
+
+  if (titleEl) titleEl.textContent = m.title;
+  if (complaintEl) complaintEl.textContent = m.customerComplaint;
+  if (hintEl) hintEl.textContent = `Tip: ${m.hint}`;
+  if (resultBanner) resultBanner.style.display = 'none';
+
+  renderMissionObjectives();
+  showToast(`Loaded mission: ${m.title}`, 'info');
+  updateConditionHUD();
+}
+
+initDMMControls();
+initCockpitControls();
+initMissionsUI();
 
 // Main Animation Loop
 const clock = new THREE.Clock();
