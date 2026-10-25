@@ -1,0 +1,14 @@
+{
+  "name": "mechverse-workshop-prototype",
+  "version": "1.0.0",
+  "description": "MECHVERSE: Interactive 3D Automotive Engineering and Workshop Simulation Prototype",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test ../../tests/*.test.js"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  }
+}

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MECHVERSE: Workshop & Automotive Engineering Simulator</title>
+  <link rel="stylesheet" href="css/workshop.css">
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
+  <!-- UI HUD Overlay Layer -->
+  <div class="ui-layer">
+    <!-- Top Navigation & Global Telemetry Bar -->
+    <header class="top-bar interactive-panel">
+      <div class="logo-section">
+        <span class="logo-badge">MECHVERSE</span>
+        <span class="title-text">AUTOMOTIVE ENGINEERING WORKSHOP</span>
+        <span class="sub-title">| PHASE 1 FOUNDATION & RESTORATION SIMULATOR</span>
+      </div>
+      <div class="top-telemetry">
+        <div class="telemetry-item">
+          <span class="telemetry-label">LIFT HEIGHT:</span>
+          <span id="lift-height-display" class="telemetry-value">0.0m (Floor)</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">TORQUE SPEC:</span>
+          <span id="torque-display" class="telemetry-value">25 N*m</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content: Left Tools & Right Inspection HUD -->
+    <div class="main-content">
+      <!-- Left Sidebar: Workshop Tools & Lift Controls -->
+      <aside class="left-sidebar">
+        <!-- Tools Panel -->
+        <div class="interactive-panel">
+          <div class="panel-header">Workshop Equipment</div>
+          <div class="tool-list">
+            <button class="tool-btn active" data-tool="TOOL_INSPECT">
+              <span class="tool-icon">🔍</span>
+              <span>Inspection Probe</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_TORQUE_24">
+              <span class="tool-icon">🔧</span>
+              <span>1/2" Torque Wrench (24mm)</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_TORQUE_17">
+              <span class="tool-icon">🔩</span>
+              <span>1/2" Torque Wrench (17mm)</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_PRESSURE_WASHER">
+              <span class="tool-icon">🚿</span>
+              <span>Pressure Washer / Degreaser</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_DENT_PULLER">
+              <span class="tool-icon">🔨</span>
+              <span>Suction Dent Puller</span>
+            </button>
+            <button class="tool-btn" data-tool="TOOL_FUEL_NOZZLE">
+              <span class="tool-icon">⛽</span>
+              <span>Fuel Dispenser Nozzle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hydraulic Lift Controls -->
+        <div class="interactive-panel">
+          <div class="panel-header">Hydraulic Vehicle Lift</div>
+          <div class="lift-controls">
+            <div class="btn-group">
+              <button id="btn-lift-up" class="btn-primary">▲ Raise Lift</button>
+              <button id="btn-lift-down" class="btn-secondary">▼ Lower Lift</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px;">
+              Dual-cylinder hydraulic lock active
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Hint -->
+        <div class="interactive-panel" style="padding: 12px;">
+          <div class="panel-header" style="padding: 0 0 6px 0; border: none;">Navigation Controls</div>
+          <div class="controls-hint" style="flex-direction: column; gap: 6px;">
+            <div><span class="key-tag">WASD</span> Pan workshop camera</div>
+            <div><span class="key-tag">Right-Click + Drag</span> Rotate around vehicle</div>
+            <div><span class="key-tag">Mouse Scroll</span> Zoom in / out</div>
+            <div><span class="key-tag">Left-Click</span> Select & inspect component</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Sidebar: Component Inspection HUD -->
+      <aside class="right-sidebar">
+        <div class="inspection-panel interactive-panel">
+          <div class="panel-header">Component Telemetry HUD</div>
+          <div class="component-details">
+            <div class="comp-header">
+              <div id="comp-title" class="comp-title">Select a component</div>
+              <div id="comp-guid" class="comp-guid">Part No: --</div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stat-grid">
+              <div class="stat-card">
+                <div class="stat-title">System Category</div>
+                <div id="comp-category" class="stat-val">--</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Component Mass</div>
+                <div id="comp-mass" class="stat-val">--</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Drive / Fastener</div>
+                <div id="comp-fastener" class="stat-val">--</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Torque Status</div>
+                <div id="comp-torque" class="stat-val">--</div>
+              </div>
+            </div>
+
+            <!-- Condition Gauges -->
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+                <span style="color: var(--text-muted);">WEAR INDEX</span>
+                <span id="comp-wear" style="font-family: var(--font-mono); font-weight: 700;">--</span>
+              </div>
+              <div class="progress-bar-container">
+                <div id="comp-wear-fill" class="progress-fill warning" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+                <span style="color: var(--text-muted);">CLEANLINESS</span>
+                <span id="comp-clean" style="font-family: var(--font-mono); font-weight: 700;">--</span>
+              </div>
+              <div class="progress-bar-container">
+                <div id="comp-clean-fill" class="progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-title">Assembly State</div>
+              <div id="comp-status" class="stat-val">--</div>
+            </div>
+
+            <!-- Technical Explanation -->
+            <div style="background: rgba(33, 38, 45, 0.5); padding: 10px; border-radius: 6px; font-size: 12px; line-height: 1.4; color: var(--text-muted); border: 1px solid var(--bg-panel-border);">
+              <div style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Engineering Function:</div>
+              <div id="comp-description">Click any component to inspect.</div>
+            </div>
+
+            <!-- Torque Wrench Calibration Slider -->
+            <div class="torque-slider-group">
+              <div class="torque-label">
+                <span style="color: var(--text-muted);">Torque Wrench Setting</span>
+                <span style="font-family: var(--font-mono); color: var(--accent-blue); font-weight: 700;">Adjustment</span>
+              </div>
+              <input type="range" id="torque-slider" min="5" max="220" value="25" step="1">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+                <span>5 N*m (M6)</span>
+                <span>25 N*m (Filter/Drain)</span>
+                <span>120 N*m (Lugs)</span>
+                <span>220 N*m</span>
+              </div>
+            </div>
+
+            <!-- Context-Sensitive Dynamic Actions -->
+            <div id="dynamic-actions" class="actions-container"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Bar: 12-Category Vehicle Condition Telemetry -->
+    <footer class="bottom-bar interactive-panel">
+      <div class="condition-overview">
+        <div style="font-size: 11px; font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.8px;">
+          VEHICLE TELEMETRY
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Mechanical</span>
+          <span id="cond-mech" class="metric-val" style="color: var(--accent-green);">92%</span>
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Electrical</span>
+          <span id="cond-elec" class="metric-val" style="color: var(--accent-green);">98%</span>
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Structural</span>
+          <span id="cond-struct" class="metric-val" style="color: var(--accent-cyan);">100%</span>
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Body Panels</span>
+          <span id="cond-body" class="metric-val" style="color: var(--accent-amber);">84%</span>
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Paint Finish</span>
+          <span id="cond-paint" class="metric-val" style="color: var(--accent-amber);">76%</span>
+        </div>
+        <div class="condition-metric">
+          <span class="metric-name">Cleanliness</span>
+          <span id="cond-clean" class="metric-val" style="color: var(--accent-purple);">52%</span>
+        </div>
+      </div>
+      <div>
+        <span id="safety-badge" class="safety-badge pass">ROADWORTHY: PASSED</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Application Module Script -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

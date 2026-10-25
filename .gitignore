@@ -1,0 +1,47 @@
+# Unreal Engine
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+FileOpenOrder/
+*.VC.db
+*.opendb
+*.VC.opendb
+.vs/
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+target/
+out/
+*.class
+*.jar
+*.obj
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs and environment
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local

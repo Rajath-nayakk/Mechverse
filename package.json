@@ -1,0 +1,11 @@
+{
+  "name": "mechverse",
+  "version": "0.1.0",
+  "description": "MECHVERSE: Ultimate Automotive Engineering, Vehicle Construction, Diagnostics and Garage Simulation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node clients/workshop-prototype/server.js"
+  }
+}
