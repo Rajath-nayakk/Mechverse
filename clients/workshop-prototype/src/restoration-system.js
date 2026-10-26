@@ -21,6 +21,15 @@ export const PAINT_LAYERS = {
   CLEARCOAT: 'CLEARCOAT'
 };
 
+export const OEM_BMW_COLORS = {
+  ISLE_OF_MAN_GREEN: { code: 'C4G', name: 'Isle of Man Green Metallic', hex: '#164a38', flakePercent: 42.0 },
+  SAO_PAULO_YELLOW: { code: 'C4H', name: 'Sao Paulo Yellow Uni', hex: '#d8eb34', flakePercent: 0.0 },
+  BROOKLYN_GREY: { code: 'C4P', name: 'Brooklyn Grey Metallic', hex: '#878c91', flakePercent: 30.0 },
+  TANZANITE_BLUE_II: { code: 'C3Z', name: 'Tanzanite Blue II Metallic', hex: '#0f2347', flakePercent: 55.0 },
+  PORTIMAO_BLUE: { code: 'C31', name: 'Portimao Blue Metallic', hex: '#1a4b8f', flakePercent: 38.0 },
+  FIRE_ORANGE_III: { code: 'P7E', name: 'Fire Orange III (BMW Individual)', hex: '#f05a18', flakePercent: 0.0 }
+};
+
 export class PanelRestorationSystem {
   constructor() {
     // Panel Body Damage State
@@ -240,5 +249,56 @@ export class PanelRestorationSystem {
     }
 
     return { success: false, error: `Unknown paint layer: ${layerType}` };
+  }
+
+  /**
+   * Apply automotive tape and masking paper to protect surrounding panels/glass
+   */
+  maskPanel(panelId) {
+    const panel = this.panelStates.get(panelId);
+    if (!panel) return { success: false, error: 'Panel not found' };
+    panel.isMasked = true;
+    return {
+      success: true,
+      panelId,
+      message: 'Automotive edge masking tape and solvent-resistant kraft paper applied.'
+    };
+  }
+
+  unmaskPanel(panelId) {
+    const panel = this.panelStates.get(panelId);
+    if (!panel) return { success: false, error: 'Panel not found' };
+    panel.isMasked = false;
+    return { success: true, panelId, message: 'Masking paper and tape cleanly removed.' };
+  }
+
+  /**
+   * Wet sanding (2500 grit) & rotary compound polish
+   * Levels orange peel, removes micro-imperfections, and buffs clearcoat to 99% mirror finish
+   */
+  wetSandAndPolish(panelId, polishPasses = 2) {
+    const panel = this.panelStates.get(panelId);
+    if (!panel) return { success: false, error: 'Panel not found' };
+
+    if (!panel.paintLayers.includes(PAINT_LAYERS.CLEARCOAT)) {
+      return { success: false, error: 'Cannot polish: Panel does not have a cured clearcoat layer.' };
+    }
+    if (panel.clearcoatThicknessUm < 25.0) {
+      return { success: false, error: 'WARNING: Clearcoat too thin (<25 um) to polish without burning through!' };
+    }
+
+    // 2500-grit wet block sanding shaves ~2.5 um per pass
+    const thicknessLoss = Math.min(panel.clearcoatThicknessUm - 20.0, polishPasses * 2.5);
+    panel.clearcoatThicknessUm = Math.round((panel.clearcoatThicknessUm - thicknessLoss) * 10) / 10;
+    panel.glossPercent = 99.0; // Mirror-like reflection, zero orange peel
+
+    return {
+      success: true,
+      panelId,
+      remainingClearcoatUm: panel.clearcoatThicknessUm,
+      glossPercent: panel.glossPercent,
+      orangePeelLevel: 'ZERO_TEXTURE_MIRROR',
+      message: 'Wet sanding and dual-action rotary compound polish complete. Show car mirror finish achieved.'
+    };
   }
 }
