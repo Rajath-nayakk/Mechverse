@@ -40,7 +40,36 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 container.appendChild(renderer.domElement);
+
+// Procedural Workshop Environment for PBR metallic reflections
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+const envCanvas = document.createElement('canvas');
+envCanvas.width = 512;
+envCanvas.height = 256;
+const envCtx = envCanvas.getContext('2d');
+if (envCtx) {
+  const grad = envCtx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#79b8ff'); // Ceiling LED ambient
+  grad.addColorStop(0.3, '#30363d'); // Upper walls
+  grad.addColorStop(0.5, '#161b22'); // Horizon
+  grad.addColorStop(0.7, '#21262d'); // Workshop floor
+  grad.addColorStop(1, '#0d1117');
+  envCtx.fillStyle = grad;
+  envCtx.fillRect(0, 0, 512, 256);
+  // Overhead strip reflections
+  envCtx.fillStyle = '#ffffff';
+  envCtx.fillRect(80, 20, 140, 24);
+  envCtx.fillRect(280, 20, 140, 24);
+  const envTex = new THREE.CanvasTexture(envCanvas);
+  envTex.mapping = THREE.EquirectangularReflectionMapping;
+  const envRt = pmremGenerator.fromEquirectangular(envTex);
+  scene.environment = envRt.texture;
+}
 
 // Controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -49,7 +78,7 @@ controls.dampingFactor = 0.05;
 controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going beneath floor
 controls.minDistance = 0.8;
 controls.maxDistance = 14.0;
-controls.target.set(0, 1.0, 0);
+controls.target.set(0, 0.85, 0);
 
 // Workshop Dual-Mode Controls (Orbit + First-Person Walk)
 const workshopControls = new WorkshopControls(camera, renderer.domElement, controls);

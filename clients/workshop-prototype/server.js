@@ -14,7 +14,15 @@ const MIME_TYPES = {
   '.json': 'application/json',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.bin': 'application/octet-stream',
+  '.hdr': 'image/vnd.radiance',
+  '.wasm': 'application/wasm'
 };
 
 const server = http.createServer((req, res) => {
