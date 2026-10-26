@@ -30,7 +30,9 @@ export const AVAILABLE_TOOLS = [
   { id: 'TOOL_FUEL_NOZZLE', name: 'Fuel Dispenser Nozzle', category: 'REFUELING' },
   { id: 'TOOL_MULTIMETER', name: 'Digital Multimeter (DMM)', category: 'ELECTRICAL_DIAGNOSTIC' },
   { id: 'TOOL_COMPRESSION_TESTER', name: 'Engine Cylinder Compression Tester', category: 'MECHANICAL_DIAGNOSTIC' },
-  { id: 'TOOL_LEAKDOWN_TESTER', name: 'Cylinder Differential Leak-Down Tester', category: 'MECHANICAL_DIAGNOSTIC' }
+  { id: 'TOOL_LEAKDOWN_TESTER', name: 'Cylinder Differential Leak-Down Tester', category: 'MECHANICAL_DIAGNOSTIC' },
+  { id: 'TOOL_PENETRATING_OIL', name: 'Rust Penetrating Fluid Aerosol', category: 'CHEMICAL' },
+  { id: 'TOOL_SCREW_EXTRACTOR', name: 'Left-Hand Screw Extractor & Pilot Drill Kit', category: 'EXTRACTOR' }
 ];
 
 export function validateSocketCompatibility(tool, socket, fastener) {
