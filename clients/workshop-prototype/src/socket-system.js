@@ -32,7 +32,8 @@ export const AVAILABLE_TOOLS = [
   { id: 'TOOL_COMPRESSION_TESTER', name: 'Engine Cylinder Compression Tester', category: 'MECHANICAL_DIAGNOSTIC' },
   { id: 'TOOL_LEAKDOWN_TESTER', name: 'Cylinder Differential Leak-Down Tester', category: 'MECHANICAL_DIAGNOSTIC' },
   { id: 'TOOL_PENETRATING_OIL', name: 'Rust Penetrating Fluid Aerosol', category: 'CHEMICAL' },
-  { id: 'TOOL_SCREW_EXTRACTOR', name: 'Left-Hand Screw Extractor & Pilot Drill Kit', category: 'EXTRACTOR' }
+  { id: 'TOOL_SCREW_EXTRACTOR', name: 'Left-Hand Screw Extractor & Pilot Drill Kit', category: 'EXTRACTOR' },
+  { id: 'TOOL_FIRE_EXTINGUISHER', name: 'Dry Chemical / CO2 Fire Extinguisher', category: 'SAFETY' }
 ];
 
 export function validateSocketCompatibility(tool, socket, fastener) {

@@ -14,6 +14,8 @@ import { EngineSimulation, MECHANICAL_FAULTS } from './engine-simulation.js';
 import { PanelRestorationSystem, PAINT_LAYERS } from './restoration-system.js';
 import { PersistenceSystem } from './persistence-system.js';
 import { WorkshopControls } from './workshop-controls.js';
+import { VehicleAudioSystem } from './audio-system.js';
+import { HazardSystem } from './hazard-system.js';
 
 // Setup Application State
 const components = JSON.parse(JSON.stringify(INITIAL_COMPONENTS));
@@ -102,6 +104,10 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
+// Initialize 3D Audio & Damage Hazard Systems
+const audioSystem = new VehicleAudioSystem(camera, scene);
+const hazardSystem = new HazardSystem(scene, vehicle, audioSystem);
+
 // Interaction Manager
 const interaction = new InteractionManager(
   camera,
@@ -113,7 +119,9 @@ const interaction = new InteractionManager(
   updateInspectionUI,
   showToast,
   engineSim,
-  restoSystem
+  restoSystem,
+  audioSystem,
+  hazardSystem
 );
 
 // UI DOM References
@@ -498,6 +506,125 @@ document.getElementById('btn-lift-down').addEventListener('click', () => {
   garage.setLiftHeight(0.0);
   showToast('Lowering hydraulic lift to floor...', 'info');
   document.getElementById('lift-height-display').textContent = '0.0m (Floor)';
+});
+
+// Engine Ignition & Acoustic Simulation Controls
+const btnIgnition = document.getElementById('btn-engine-ignition');
+if (btnIgnition) {
+  btnIgnition.addEventListener('click', () => {
+    audioSystem.playOneShot('ignition_on');
+    showToast('Ignition turned to ON / ACC. Relays energized.', 'info');
+  });
+}
+
+const btnStart = document.getElementById('btn-engine-start');
+if (btnStart) {
+  btnStart.addEventListener('click', () => {
+    showToast('Engaging starter motor...', 'info');
+    audioSystem.startIgnitionSequence({
+      batteryVoltage: electricalSystem.battery.terminalVoltage,
+      fuelVolume: vehicle.fuelVolume || 45.0,
+      components: { starter_motor: { installed: true } }
+    });
+    engineSim.isCranking = true;
+    setTimeout(() => {
+      engineSim.isCranking = false;
+      if (electricalSystem.battery.terminalVoltage >= 11.2) {
+        engineSim.isRunning = true;
+        showToast('Engine catch & idle confirmed at ~850 RPM.', 'success');
+      } else {
+        showToast('Battery voltage insufficient to start engine!', 'error');
+      }
+    }, 1500);
+  });
+}
+
+const btnStop = document.getElementById('btn-engine-stop');
+if (btnStop) {
+  btnStop.addEventListener('click', () => {
+    audioSystem.stopEngine();
+    engineSim.isRunning = false;
+    showToast('Engine ignition switched OFF.', 'info');
+  });
+}
+
+const btnRev = document.getElementById('btn-engine-rev');
+if (btnRev) {
+  btnRev.addEventListener('click', () => {
+    if (!audioSystem.engineRunning) {
+      showToast('Start the engine first before blipping throttle.', 'warning');
+      return;
+    }
+    audioSystem.targetRPM = 4500;
+    showToast('Throttle blipped to 4500 RPM (Twin Turbos Spooling)', 'info');
+    setTimeout(() => {
+      audioSystem.targetRPM = 750;
+      audioSystem.playTurboBlowOff();
+      audioSystem.playExhaustCrackle();
+    }, 1100);
+  });
+}
+
+let activeSoundProfile = 'S58';
+const btnToggleSwap = document.getElementById('btn-toggle-engine-swap');
+const currentSoundProfileEl = document.getElementById('current-sound-profile');
+if (btnToggleSwap) {
+  btnToggleSwap.addEventListener('click', () => {
+    activeSoundProfile = activeSoundProfile === 'S58' ? 'V12' : 'S58';
+    audioSystem.setEngineType(activeSoundProfile);
+    engineSim.setEngineType(activeSoundProfile);
+    if (currentSoundProfileEl) {
+      currentSoundProfileEl.textContent = activeSoundProfile === 'S58' ? 'S58 Twin-Turbo I6' : 'Custom 6.0L V12 Swap';
+    }
+    showToast(`Engine sound profile switched to: ${activeSoundProfile === 'S58' ? 'BMW S58 Twin-Turbo I6' : '6.0L V12 Engine Swap'}`, 'success');
+  });
+}
+
+// Hazard & Damage Testing Controls
+const btnHazArc = document.getElementById('btn-hazard-arc');
+if (btnHazArc) btnHazArc.addEventListener('click', () => hazardSystem.triggerReversePolarity());
+
+const btnHazFuse = document.getElementById('btn-hazard-fuse');
+if (btnHazFuse) btnHazFuse.addEventListener('click', () => {
+  hazardSystem.risks.electrical = 85.0;
+  hazardSystem.evaluateHazardLevel();
+});
+
+const btnHazSmoke = document.getElementById('btn-hazard-smoke');
+if (btnHazSmoke) btnHazSmoke.addEventListener('click', () => {
+  hazardSystem.risks.electrical = 60.0;
+  hazardSystem.risks.oil = 70.0;
+  hazardSystem.evaluateHazardLevel();
+});
+
+const btnHazGlow = document.getElementById('btn-hazard-glow');
+if (btnHazGlow) btnHazGlow.addEventListener('click', () => {
+  hazardSystem.risks.heat = 90.0;
+  hazardSystem.risks.oil = 80.0;
+  hazardSystem.evaluateHazardLevel();
+});
+
+const btnHazFire = document.getElementById('btn-hazard-fire');
+if (btnHazFire) btnHazFire.addEventListener('click', () => hazardSystem.triggerFuelLeakNearSpark());
+
+const btnHazFull = document.getElementById('btn-hazard-fullfire');
+if (btnHazFull) btnHazFull.addEventListener('click', () => {
+  hazardSystem.risks.fuel = 100.0;
+  hazardSystem.risks.heat = 100.0;
+  hazardSystem.risks.electrical = 100.0;
+  hazardSystem.evaluateHazardLevel();
+});
+
+const btnHazExtinguish = document.getElementById('btn-hazard-extinguish');
+if (btnHazExtinguish) btnHazExtinguish.addEventListener('click', () => {
+  hazardSystem.applyFireExtinguisher(5.0);
+  showToast('Discharged CO2 / Dry Chemical Extinguisher! Hazard suppressed.', 'success');
+});
+
+const btnHazCutBattery = document.getElementById('btn-hazard-cut-battery');
+if (btnHazCutBattery) btnHazCutBattery.addEventListener('click', () => {
+  hazardSystem.disconnectBattery();
+  showToast('Battery isolated & cut. Electrical risk neutralized.', 'warning');
 });
 
 // Tool Selection Buttons
@@ -905,6 +1032,8 @@ if (btnBonnet) {
     const open = vehicle.toggleBonnet();
     const bonnetComp = components.find(c => c.id === 'bonnet_hood');
     if (bonnetComp) bonnetComp.isOpen = open;
+    if (audioSystem) audioSystem.setBonnetState(open);
+    if (hazardSystem) hazardSystem.setBonnetClosed(!open);
     showToast(open ? 'Bonnet opened (Engine bay accessible).' : 'Bonnet closed and latched.', 'info');
     if (interaction.selectedComponent?.id === 'bonnet_hood') updateInspectionUI(bonnetComp);
   });
@@ -1065,9 +1194,70 @@ function animate() {
   vehicle.update(dt, engineSim);
   workshopControls.update(dt);
 
+  // Sync hydraulic lift acoustics
+  const isLiftMoving = Math.abs(garage.liftHeight - garage.targetLiftHeight) > 0.005;
+  audioSystem.setLiftRunning(isLiftMoving);
+
+  // Authoritative Audio & Hazard frame updates
+  audioSystem.update(dt, {
+    batteryVoltage: electricalSystem.battery.terminalVoltage,
+    fuelVolume: vehicle.fuelVolume || 45.0,
+    mechanicalFaults: {
+      rod_knock: engineSim.activeFaults.has('WORN_ROD_BEARING_CYL1'),
+      belt_worn: engineSim.activeFaults.has('INCORRECT_VALVE_TIMING')
+    }
+  });
+  hazardSystem.update(dt);
+
   renderer.render(scene, camera);
 }
 
+// Global Hotkeys: H (Minimal HUD), M (DMM), Tab (Missions), I (Equipment)
+window.addEventListener('keydown', (e) => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+  if (e.key === 'h' || e.key === 'H') {
+    document.body.classList.toggle('minimal-hud');
+    const isMin = document.body.classList.contains('minimal-hud');
+    showToast(isMin ? 'Minimal 3D View enabled (Press H to restore HUD).' : 'Full Workshop HUD restored.', 'info');
+  } else if (e.key === 'm' || e.key === 'M') {
+    const dmmPanel = document.getElementById('dmm-panel');
+    if (dmmPanel) {
+      dmmPanel.style.display = (dmmPanel.style.display === 'none' || !dmmPanel.style.display) ? 'block' : 'none';
+    }
+  } else if (e.key === 'Tab') {
+    e.preventDefault();
+    const missionsModal = document.getElementById('missions-modal');
+    if (missionsModal) {
+      missionsModal.style.display = (missionsModal.style.display === 'none' || !missionsModal.style.display) ? 'block' : 'none';
+    }
+  } else if (e.key === 'i' || e.key === 'I') {
+    const sidebar = document.querySelector('.left-sidebar');
+    if (sidebar) {
+      sidebar.style.display = (sidebar.style.display === 'none') ? 'flex' : 'none';
+    }
+  }
+});
+
+// Authoritative Globals for Verification & Subagents
+window.__mechverse = {
+  scene,
+  camera,
+  renderer,
+  garage,
+  vehicle,
+  audioSystem,
+  hazardSystem,
+  engineSim,
+  conditionSystem,
+  electricalSystem,
+  faultManager,
+  multimeter,
+  missionManager,
+  interaction
+};
+
 animate();
 showToast('MECHVERSE Workshop Ready. Select tools & sockets to inspect and service components.', 'success');
+
 

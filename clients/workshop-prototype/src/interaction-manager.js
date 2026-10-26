@@ -3,7 +3,7 @@ import { SOCKET_SET, AVAILABLE_TOOLS, validateSocketCompatibility, advanceFasten
 import { CleaningSimulation } from './cleaning-system.js';
 
 export class InteractionManager {
-  constructor(camera, scene, domElement, components, vehicleModel, conditionSystem, onComponentSelected, showToast, engineSim = null, restoSystem = null) {
+  constructor(camera, scene, domElement, components, vehicleModel, conditionSystem, onComponentSelected, showToast, engineSim = null, restoSystem = null, audioSystem = null, hazardSystem = null) {
     this.camera = camera;
     this.scene = scene;
     this.domElement = domElement;
@@ -14,6 +14,8 @@ export class InteractionManager {
     this.showToast = showToast;
     this.engineSim = engineSim;
     this.restoSystem = restoSystem;
+    this.audioSystem = audioSystem;
+    this.hazardSystem = hazardSystem;
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -138,10 +140,20 @@ export class InteractionManager {
     }
     this.onComponentSelected(comp);
 
+    if (this.activeToolId === 'TOOL_FIRE_EXTINGUISHER') {
+      if (this.hazardSystem) {
+        this.hazardSystem.applyFireExtinguisher(3.0);
+      }
+      this.showToast('Discharged CO2 / Dry Chemical Fire Extinguisher! Suppressing flames and cooling engine bay.', 'success');
+      return;
+    }
+
     // Check for interactive opening panels
     if (compId === 'bonnet_hood') {
       const isOpen = this.vehicleModel.toggleBonnet();
       comp.isOpen = isOpen;
+      if (this.audioSystem) this.audioSystem.setBonnetState(isOpen);
+      if (this.hazardSystem) this.hazardSystem.setBonnetClosed(!isOpen);
       this.showToast(isOpen ? 'Bonnet opened (Engine bay accessible).' : 'Bonnet closed and latched.', 'info');
       this.onComponentSelected(comp);
       return;
@@ -310,10 +322,13 @@ export class InteractionManager {
       comp.fastener.isTorqued = (appliedTorque >= lower && appliedTorque <= upper);
 
       if (comp.fastener.isTorqued) {
+        if (this.audioSystem) this.audioSystem.playToolTorqueClick();
         this.showToast(`Fastener torqued to spec: ${appliedTorque.toFixed(1)} N*m (Target: ${comp.fastener.targetTorqueNm} N*m)`, 'success');
       } else if (appliedTorque < lower) {
+        if (this.audioSystem) this.audioSystem.playToolTorqueClick();
         this.showToast(`Under-torqued: ${appliedTorque.toFixed(1)} N*m (Target: ${comp.fastener.targetTorqueNm} N*m)`, 'warning');
       } else {
+        if (this.audioSystem) this.audioSystem.playToolTorqueClick();
         this.showToast(`Above target but within yield: ${appliedTorque.toFixed(1)} N*m`, 'warning');
       }
     }
@@ -333,6 +348,8 @@ export class InteractionManager {
       this.showToast(validation.reason, 'error');
       return;
     }
+
+    if (this.audioSystem) this.audioSystem.playToolRatchet();
 
     // Unthread by turns
     const advance = advanceFastenerThread(comp.fastener, -turns);
@@ -356,6 +373,8 @@ export class InteractionManager {
       this.showToast(validation.reason, 'error');
       return;
     }
+
+    if (this.audioSystem) this.audioSystem.playToolRatchet();
 
     const advance = advanceFastenerThread(comp.fastener, turns);
     this.showToast(advance.message, 'info');

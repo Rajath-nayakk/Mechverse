@@ -126,6 +126,10 @@
               <span class="tool-icon">⚙️</span>
               <span>Rotary Rust Grinder</span>
             </button>
+            <button class="tool-btn" data-tool="TOOL_FIRE_EXTINGUISHER">
+              <span class="tool-icon">🧯</span>
+              <span>CO2 / Dry Chemical Extinguisher</span>
+            </button>
           </div>
 
           <!-- Electrical Missions Toggle Button -->
@@ -158,6 +162,43 @@
           <div style="display: flex; gap: 6px; margin-top: 6px;">
             <button id="btn-toggle-cutaway" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px;">🔍 Engine Cutaway</button>
             <button id="btn-toggle-camera-view" class="btn-primary" style="flex: 1; font-size: 11px; padding: 6px;">👁️ Walk View [V]</button>
+          </div>
+        </div>
+
+        <!-- Engine & Realistic Acoustic Simulation -->
+        <div class="interactive-panel">
+          <div class="panel-header">Engine & Acoustic Simulation</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px 0;">
+            <button id="btn-engine-ignition" class="btn-primary" style="font-size: 11px; padding: 6px;">🔑 Key ON</button>
+            <button id="btn-engine-start" class="btn-primary" style="font-size: 11px; padding: 6px; background: #238636;">⚡ Crank / Start</button>
+            <button id="btn-engine-stop" class="btn-secondary" style="font-size: 11px; padding: 6px; color: var(--accent-red);">🛑 Stop Engine</button>
+            <button id="btn-engine-rev" class="btn-secondary" style="font-size: 11px; padding: 6px;">💨 Rev (+3500 RPM)</button>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button id="btn-toggle-engine-swap" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px;">
+              🔄 Sound: <span id="current-sound-profile">S58 Twin-Turbo I6</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hazard & Damage Escalation Testing -->
+        <div class="interactive-panel">
+          <div class="panel-header">Hazard & Damage Testing</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px 0;">
+            <button id="btn-hazard-arc" class="btn-secondary" style="font-size: 10px; padding: 5px;">⚡ Arc (Stage 1)</button>
+            <button id="btn-hazard-fuse" class="btn-secondary" style="font-size: 10px; padding: 5px;">💥 Fuse (Stage 2)</button>
+            <button id="btn-hazard-smoke" class="btn-secondary" style="font-size: 10px; padding: 5px;">💨 Smoke (Stage 3)</button>
+            <button id="btn-hazard-glow" class="btn-secondary" style="font-size: 10px; padding: 5px;">🔥 Heat Glow (Stage 4)</button>
+            <button id="btn-hazard-fire" class="btn-secondary" style="font-size: 10px; padding: 5px; color: #ff7b72;">🔥 Flames (Stage 5)</button>
+            <button id="btn-hazard-fullfire" class="btn-secondary" style="font-size: 10px; padding: 5px; color: #ff3b00;">🔥 Total Loss (Stage 6)</button>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button id="btn-hazard-extinguish" class="btn-primary" style="flex: 1; font-size: 11px; padding: 6px; background: #1f6feb;">
+              🧯 Discharge Extinguisher
+            </button>
+            <button id="btn-hazard-cut-battery" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px;">
+              ✂️ Cut Battery
+            </button>
           </div>
         </div>
 
@@ -488,6 +529,17 @@
         <span id="safety-badge" class="safety-badge pass">ROADWORTHY: PASSED</span>
       </div>
     </footer>
+
+    <!-- Minimal HUD Compact Bottom Pill -->
+    <div id="hud-compact-pill" class="hud-pill" style="display: none;">
+      <span id="pill-tool">🔍 Inspect</span>
+      <span class="pill-divider">|</span>
+      <span id="pill-torque">120 N·m</span>
+      <span class="pill-divider">|</span>
+      <span id="pill-status">BMW M4 G82 Nominal</span>
+      <span class="pill-divider">|</span>
+      <span class="pill-hint" onclick="document.body.classList.remove('minimal-hud');">[Press H for Full HUD]</span>
+    </div>
   </div>
 
   <!-- Application Module Script -->

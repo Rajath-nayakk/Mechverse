@@ -59,6 +59,52 @@ body, html {
   justify-content: space-between;
 }
 
+/* Minimal HUD Mode */
+body.minimal-hud .top-bar,
+body.minimal-hud .left-sidebar,
+body.minimal-hud .right-sidebar,
+body.minimal-hud .bottom-bar {
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+
+body.minimal-hud #hud-compact-pill {
+  display: flex !important;
+}
+
+/* Compact HUD Bottom Pill */
+.hud-pill {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 17, 23, 0.88);
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  backdrop-filter: blur(8px);
+  border-radius: 30px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-main);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.pill-divider {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.pill-hint {
+  font-size: 10px;
+  color: var(--accent-blue);
+  cursor: pointer;
+}
+
 .interactive-panel {
   pointer-events: auto;
   background: var(--bg-panel);

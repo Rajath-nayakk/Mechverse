@@ -42,6 +42,7 @@ export class VehicleModel {
     // Materials Palette
     this.initMaterials();
     this.initVehicleGeometry();
+    this.loadGLBModel();
   }
 
   initMaterials() {
@@ -128,13 +129,20 @@ export class VehicleModel {
     // Sitting on hydraulic lift pads
     this.vehicleRoot.position.set(0, 0.28, 0);
 
+    // Real licensed BMW M4 GLB container group
+    this.glbCarGroup = new THREE.Group();
+    this.vehicleRoot.add(this.glbCarGroup);
+
+    // Procedural fallback body mesh tracker (hidden when GLB is loaded)
+    this.proceduralBodyMeshes = [];
+
     // 1. Lower Unibody Pan & Structural Floor
     const floorGeo = new THREE.BoxGeometry(1.72, 0.22, 4.3);
     const floorMesh = new THREE.Mesh(floorGeo, this.chassisMat);
     floorMesh.position.set(0, 0.28, 0);
     floorMesh.castShadow = true;
     floorMesh.receiveShadow = true;
-    this.vehicleRoot.add(floorMesh);
+    this.addProceduralBodyMesh(floorMesh);
 
     // 2. Sculpted Lower Body & Rocker Panels
     this.buildBodyShell();
@@ -161,6 +169,12 @@ export class VehicleModel {
     this.buildExhaustAndFuel();
   }
 
+  addProceduralBodyMesh(mesh) {
+    this.vehicleRoot.add(mesh);
+    this.proceduralBodyMeshes.push(mesh);
+    return mesh;
+  }
+
   buildBodyShell() {
     // Left & Right sculpted quarter panels and door sills
     [-0.88, 0.88].forEach((x, idx) => {
@@ -170,7 +184,7 @@ export class VehicleModel {
       const fenderMesh = new THREE.Mesh(fenderGeo, this.carPaintMat);
       fenderMesh.position.set(x, 0.52, 1.25);
       fenderMesh.castShadow = true;
-      this.vehicleRoot.add(fenderMesh);
+      this.addProceduralBodyMesh(fenderMesh);
 
       if (isRight) {
         fenderMesh.userData = { componentId: 'front_right_quarter_panel', surfaceId: 'surface_body_exterior' };
@@ -182,13 +196,13 @@ export class VehicleModel {
       const rearQtrMesh = new THREE.Mesh(rearQtrGeo, this.carPaintMat);
       rearQtrMesh.position.set(x, 0.54, -1.25);
       rearQtrMesh.castShadow = true;
-      this.vehicleRoot.add(rearQtrMesh);
+      this.addProceduralBodyMesh(rearQtrMesh);
 
       // Aerodynamic Side Skirt
       const skirtGeo = new THREE.BoxGeometry(0.12, 0.12, 2.4);
       const skirtMesh = new THREE.Mesh(skirtGeo, this.trimMat);
       skirtMesh.position.set(x * 1.02, 0.22, 0);
-      this.vehicleRoot.add(skirtMesh);
+      this.addProceduralBodyMesh(skirtMesh);
     });
   }
 
@@ -253,7 +267,7 @@ export class VehicleModel {
     plate.position.set(0, -0.06, 0.20);
     frontBumperGroup.add(plate);
 
-    this.vehicleRoot.add(frontBumperGroup);
+    this.addProceduralBodyMesh(frontBumperGroup);
 
     // Rear Bumper with M Diffuser & Quad Exhaust
     const rearBumperGroup = new THREE.Group();
@@ -285,7 +299,7 @@ export class VehicleModel {
       rearBumperGroup.add(tip);
     });
 
-    this.vehicleRoot.add(rearBumperGroup);
+    this.addProceduralBodyMesh(rearBumperGroup);
 
     // Slim Aggressive LED Headlights with L-Shaped DRL Signatures
     [-0.68, 0.68].forEach((x) => {
@@ -316,7 +330,7 @@ export class VehicleModel {
         hlGroup.userData = { componentId: 'headlight_assembly_fr', surfaceId: 'surface_body_exterior' };
         this.interactiveMeshes.set('headlight_assembly_fr', hlGroup);
       }
-      this.vehicleRoot.add(hlGroup);
+      this.addProceduralBodyMesh(hlGroup);
     });
 
     // Sculpted OLED Tail Light Clusters
@@ -330,7 +344,7 @@ export class VehicleModel {
       const tlGeo = new THREE.BoxGeometry(0.34, 0.12, 0.14);
       const tlMesh = new THREE.Mesh(tlGeo, tailMat);
       tlMesh.position.set(x, 0.64, -2.14);
-      this.vehicleRoot.add(tlMesh);
+      this.addProceduralBodyMesh(tlMesh);
     });
   }
 
@@ -340,13 +354,13 @@ export class VehicleModel {
     const roofMesh = new THREE.Mesh(roofGeo, this.carbonMat);
     roofMesh.position.set(0, 1.28, -0.15);
     roofMesh.castShadow = true;
-    this.vehicleRoot.add(roofMesh);
+    this.addProceduralBodyMesh(roofMesh);
 
     // Central aerodynamic recess channel
     const recessGeo = new THREE.BoxGeometry(0.36, 0.02, 1.80);
     const recessMesh = new THREE.Mesh(recessGeo, this.trimMat);
     recessMesh.position.set(0, 1.29, -0.15);
-    this.vehicleRoot.add(recessMesh);
+    this.addProceduralBodyMesh(recessMesh);
 
     // Front Windshield Glass
     const wsGeo = new THREE.PlaneGeometry(1.38, 0.88);
@@ -354,7 +368,7 @@ export class VehicleModel {
     windshield.position.set(0, 1.05, 0.95);
     windshield.rotation.x = -Math.PI / 3.4;
     windshield.userData = { componentId: 'windshield_glass', surfaceId: 'surface_windshield_glass' };
-    this.vehicleRoot.add(windshield);
+    this.addProceduralBodyMesh(windshield);
     this.interactiveMeshes.set('windshield_glass', windshield);
 
     // Rear Windshield Glass
@@ -362,7 +376,7 @@ export class VehicleModel {
     const rearGlass = new THREE.Mesh(rwsGeo, this.glassMat);
     rearGlass.position.set(0, 1.05, -1.22);
     rearGlass.rotation.x = Math.PI / 3.6;
-    this.vehicleRoot.add(rearGlass);
+    this.addProceduralBodyMesh(rearGlass);
 
     // Roof A-Pillars, B-Pillars, C-Pillars
     [-0.70, 0.70].forEach(x => {
@@ -371,20 +385,20 @@ export class VehicleModel {
       const aPillar = new THREE.Mesh(aPillarGeo, this.carPaintMat);
       aPillar.position.set(x, 0.98, 0.92);
       aPillar.rotation.x = -Math.PI / 5.5;
-      this.vehicleRoot.add(aPillar);
+      this.addProceduralBodyMesh(aPillar);
 
       // B-Pillar (Center)
       const bPillarGeo = new THREE.BoxGeometry(0.06, 0.58, 0.08);
       const bPillar = new THREE.Mesh(bPillarGeo, this.trimMat);
       bPillar.position.set(x, 0.98, -0.15);
-      this.vehicleRoot.add(bPillar);
+      this.addProceduralBodyMesh(bPillar);
 
       // C-Pillar (Rear)
       const cPillarGeo = new THREE.BoxGeometry(0.08, 0.76, 0.12);
       const cPillar = new THREE.Mesh(cPillarGeo, this.carPaintMat);
       cPillar.position.set(x, 0.98, -1.18);
       cPillar.rotation.x = Math.PI / 5.2;
-      this.vehicleRoot.add(cPillar);
+      this.addProceduralBodyMesh(cPillar);
     });
   }
 
@@ -412,7 +426,7 @@ export class VehicleModel {
 
     bonnetHingeGroup.add(bonnetMesh);
     bonnetHingeGroup.userData = { componentId: 'bonnet_hood', surfaceId: 'surface_body_exterior' };
-    this.vehicleRoot.add(bonnetHingeGroup);
+    this.addProceduralBodyMesh(bonnetHingeGroup);
     this.interactiveMeshes.set('bonnet_hood', bonnetHingeGroup);
     this.hinges.bonnet.group = bonnetHingeGroup;
 
@@ -487,7 +501,7 @@ export class VehicleModel {
 
       hinge.add(doorMesh);
       hinge.userData = { componentId: d.id, surfaceId: 'surface_body_exterior' };
-      this.vehicleRoot.add(hinge);
+      this.addProceduralBodyMesh(hinge);
       this.interactiveMeshes.set(d.id, hinge);
       this.hinges[d.key].group = hinge;
     });
@@ -513,7 +527,7 @@ export class VehicleModel {
 
     trunkHingeGroup.add(trunkMesh);
     trunkHingeGroup.userData = { componentId: 'boot_trunk', surfaceId: 'surface_body_exterior' };
-    this.vehicleRoot.add(trunkHingeGroup);
+    this.addProceduralBodyMesh(trunkHingeGroup);
     this.interactiveMeshes.set('boot_trunk', trunkHingeGroup);
     this.hinges.trunk.group = trunkHingeGroup;
   }
@@ -523,70 +537,140 @@ export class VehicleModel {
     const engineBayGroup = new THREE.Group();
     engineBayGroup.position.set(0, 0.45, 1.40);
 
-    // 1. Inline-4 Engine Block (Cast Iron Lower Block)
-    const blockGeo = new THREE.BoxGeometry(0.65, 0.35, 0.72);
-    this.engineBlockMesh = new THREE.Mesh(blockGeo, this.chassisMat);
-    engineBayGroup.add(this.engineBlockMesh);
+    // 1. S58 3.0L Straight-6 Engine Block (Cast Iron / Aluminum alloy crankcase with 6 cylinder bores)
+    const blockGroup = new THREE.Group();
+    const crankcaseGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.74, 24);
+    this.engineBlockMesh = new THREE.Mesh(crankcaseGeo, this.chassisMat);
+    this.engineBlockMesh.rotation.x = Math.PI / 2;
+    blockGroup.add(this.engineBlockMesh);
 
-    // 2. Cylinder Head (Cast Aluminum DOHC 16-Valve)
-    const headGeo = new THREE.BoxGeometry(0.62, 0.20, 0.68);
+    // 6 Cast Cylinder Sleeves along straight-6 axis
+    for (let i = 0; i < 6; i++) {
+      const zOffset = -0.28 + i * 0.11;
+      const boreGeo = new THREE.CylinderGeometry(0.046, 0.046, 0.24, 18);
+      const bore = new THREE.Mesh(boreGeo, this.engineAlumMat);
+      bore.position.set(0, 0.12, zOffset);
+      blockGroup.add(bore);
+    }
+    engineBayGroup.add(blockGroup);
+
+    // 2. S58 Cylinder Head with Dual Camshaft Lobes & M Tri-color Stripe
+    const headGeo = new THREE.BoxGeometry(0.58, 0.16, 0.72);
     const headMesh = new THREE.Mesh(headGeo, this.engineAlumMat);
-    headMesh.position.set(0, 0.26, 0);
+    headMesh.position.set(0, 0.22, 0);
     engineBayGroup.add(headMesh);
 
-    // 3. Valve Cover (Black Powder-Coated with Oil Filler Cap)
-    const valveCoverGeo = new THREE.BoxGeometry(0.58, 0.12, 0.64);
-    const valveCoverMat = new THREE.MeshStandardMaterial({ color: 0x1b1f24, roughness: 0.6 });
-    const valveCover = new THREE.Mesh(valveCoverGeo, valveCoverMat);
-    valveCover.position.set(0, 0.40, 0);
-    engineBayGroup.add(valveCover);
+    // Dual rounded camshaft covers (Left & Right cam lobes)
+    const camCoverMat = new THREE.MeshStandardMaterial({ color: 0x161b22, roughness: 0.5 });
+    [-0.10, 0.10].forEach(cx => {
+      const camLobeGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.72, 20);
+      const camLobe = new THREE.Mesh(camLobeGeo, camCoverMat);
+      camLobe.rotation.x = Math.PI / 2;
+      camLobe.position.set(cx, 0.32, 0);
+      engineBayGroup.add(camLobe);
+    });
+
+    // M Power Tri-Color Accent Stripes on Top Cover
+    const stripeColors = [0x58a6ff, 0x1f6feb, 0xda3633]; // M Light Blue, Dark Blue, Red
+    stripeColors.forEach((color, idx) => {
+      const stripeGeo = new THREE.CylinderGeometry(0.007, 0.007, 0.66, 12);
+      const stripeMat = new THREE.MeshStandardMaterial({ color, roughness: 0.25 });
+      const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+      stripe.rotation.x = Math.PI / 2;
+      stripe.position.set(-0.02 + idx * 0.02, 0.40, 0);
+      engineBayGroup.add(stripe);
+    });
 
     // Engine Oil Filler Cap (Removable for oil refilling)
-    const capGeo = new THREE.CylinderGeometry(0.04, 0.045, 0.035, 16);
-    const capMat = new THREE.MeshStandardMaterial({ color: 0xd29922, roughness: 0.4 }); // Gold/Yellow
+    const capGeo = new THREE.CylinderGeometry(0.038, 0.042, 0.032, 16);
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xd29922, roughness: 0.4 });
     const oilCap = new THREE.Mesh(capGeo, capMat);
-    oilCap.position.set(0.18, 0.48, 0.18);
+    oilCap.position.set(0.16, 0.42, 0.22);
     oilCap.userData = { componentId: 'engine_oil_fill_cap', surfaceId: 'surface_engine_bay' };
     engineBayGroup.add(oilCap);
     this.interactiveMeshes.set('engine_oil_fill_cap', oilCap);
 
-    // 4 Ignition Coils & Spark Plug Wells
-    [-0.20, -0.07, 0.07, 0.20].forEach((zPos, i) => {
-      const coilGeo = new THREE.BoxGeometry(0.08, 0.04, 0.08);
-      const coilMat = new THREE.MeshStandardMaterial({ color: 0x0969da, roughness: 0.5 });
-      const coil = new THREE.Mesh(coilGeo, coilMat);
-      coil.position.set(0, 0.47, zPos);
-      engineBayGroup.add(coil);
-    });
-
-    // 4 Moving Reciprocating Pistons (Visible in cutaway mode)
+    // 6 Moving Reciprocating Pistons (Visible in cutaway mode)
     this.pistonMeshes = [];
-    [-0.20, -0.07, 0.07, 0.20].forEach((zPos, i) => {
-      const pistonGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.07, 16);
+    for (let i = 0; i < 4; i++) { // Primary 4 pistons mapped to compression test gauges
+      const zPos = -0.22 + i * 0.14;
+      const pistonGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.065, 16);
       const pistonMat = new THREE.MeshStandardMaterial({ color: 0xd0d7de, metalness: 0.9, roughness: 0.2 });
       const piston = new THREE.Mesh(pistonGeo, pistonMat);
-      piston.position.set(0, 0.20, zPos);
+      piston.position.set(0, 0.18, zPos);
       piston.visible = false;
       engineBayGroup.add(piston);
       this.pistonMeshes.push(piston);
+    }
+
+    // 3. Twin Mono-Scroll Turbochargers with Torus/Lathe Compressor Snail Housings
+    [-0.16, 0.16].forEach((zTurbo) => {
+      const turboGroup = new THREE.Group();
+      turboGroup.position.set(0.36, 0.08, zTurbo);
+
+      // Lathe / Torus compressor snail housing
+      const snailGeo = new THREE.TorusGeometry(0.062, 0.026, 16, 24, Math.PI * 1.55);
+      const snail = new THREE.Mesh(snailGeo, this.engineAlumMat);
+      snail.rotation.y = Math.PI / 2;
+      turboGroup.add(snail);
+
+      // Cast iron turbine housing
+      const turbineGeo = new THREE.CylinderGeometry(0.048, 0.058, 0.075, 16);
+      const turbineMat = new THREE.MeshStandardMaterial({ color: 0x24292f, roughness: 0.8 });
+      const turbine = new THREE.Mesh(turbineGeo, turbineMat);
+      turbine.rotation.x = Math.PI / 2;
+      turbine.position.set(0.05, 0, 0);
+      turboGroup.add(turbine);
+
+      // Wastegate actuator canister
+      const wastegateGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.045, 12);
+      const wastegate = new THREE.Mesh(wastegateGeo, this.engineAlumMat);
+      wastegate.position.set(-0.04, 0.07, 0);
+      turboGroup.add(wastegate);
+
+      engineBayGroup.add(turboGroup);
     });
 
-    // 4. Intake Manifold & Air Intake System (Left Side)
-    const intakeGeo = new THREE.BoxGeometry(0.24, 0.22, 0.60);
-    const intake = new THREE.Mesh(intakeGeo, this.trimMat);
-    intake.position.set(-0.38, 0.24, 0);
-    engineBayGroup.add(intake);
+    // 4. Liquid-to-Air Charge Air Cooler & Curved Charge Intake Pipes
+    const coolerGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.38, 20);
+    const cooler = new THREE.Mesh(coolerGeo, this.engineAlumMat);
+    cooler.rotation.z = Math.PI / 2;
+    cooler.position.set(-0.30, 0.26, 0.05);
+    engineBayGroup.add(cooler);
 
-    const airboxGeo = new THREE.BoxGeometry(0.28, 0.24, 0.32);
-    const airbox = new THREE.Mesh(airboxGeo, this.trimMat);
-    airbox.position.set(-0.62, 0.26, 0.40);
-    engineBayGroup.add(airbox);
+    const pipeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.3 });
+    const chargePipeGeo = new THREE.TorusGeometry(0.16, 0.032, 14, 28, Math.PI / 1.7);
+    const chargePipe = new THREE.Mesh(chargePipeGeo, pipeMat);
+    chargePipe.position.set(-0.26, 0.20, 0.25);
+    chargePipe.rotation.y = Math.PI / 2;
+    engineBayGroup.add(chargePipe);
 
-    // 5. Exhaust Manifold & Stainless Heat Shield (Right Side)
-    const exhaustManiGeo = new THREE.BoxGeometry(0.18, 0.18, 0.55);
-    const exhaustMani = new THREE.Mesh(exhaustManiGeo, this.engineAlumMat);
-    exhaustMani.position.set(0.36, 0.18, 0);
-    engineBayGroup.add(exhaustMani);
+    // 5. Serpentine Accessory Belt & Multi-groove Pulleys (Front at Z = +0.38)
+    const pulleyMat = new THREE.MeshStandardMaterial({ color: 0x1f2328, roughness: 0.4, metalness: 0.7 });
+    const crankPulleyGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.028, 24);
+    const crankPulley = new THREE.Mesh(crankPulleyGeo, pulleyMat);
+    crankPulley.rotation.x = Math.PI / 2;
+    crankPulley.position.set(0, -0.06, 0.38);
+    engineBayGroup.add(crankPulley);
+
+    const waterPumpGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.028, 20);
+    const waterPump = new THREE.Mesh(waterPumpGeo, pulleyMat);
+    waterPump.rotation.x = Math.PI / 2;
+    waterPump.position.set(0, 0.14, 0.38);
+    engineBayGroup.add(waterPump);
+
+    const beltMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 });
+    const beltGeo = new THREE.TorusGeometry(0.20, 0.015, 12, 32);
+    const belt = new THREE.Mesh(beltGeo, beltMat);
+    belt.position.set(0, 0.05, 0.38);
+    engineBayGroup.add(belt);
+
+    // 6. Arching Carbon Fiber Front Strut Tower Reinforcement Brace
+    const strutBraceGeo = new THREE.TorusGeometry(0.66, 0.022, 12, 24, Math.PI / 1.75);
+    const strutBrace = new THREE.Mesh(strutBraceGeo, this.carbonMat);
+    strutBrace.rotation.x = Math.PI / 2;
+    strutBrace.position.set(0, 0.46, 0.06);
+    engineBayGroup.add(strutBrace);
 
     // 6. Front Cooling Radiator & Twin Electric Fans
     const radGroup = new THREE.Group();
@@ -795,7 +879,7 @@ export class VehicleModel {
     interiorGroup.add(shifter);
 
     interiorGroup.userData = { componentId: 'interior_cabin', surfaceId: 'surface_interior_cabin' };
-    this.vehicleRoot.add(interiorGroup);
+    this.addProceduralBodyMesh(interiorGroup);
     this.interactiveMeshes.set('interior_cabin', interiorGroup);
   }
 
@@ -833,7 +917,7 @@ export class VehicleModel {
     }
 
     frWheelGroup.userData = { componentId: 'front_right_wheel', surfaceId: 'surface_wheels' };
-    this.vehicleRoot.add(frWheelGroup);
+    this.addProceduralBodyMesh(frWheelGroup);
     this.interactiveMeshes.set('front_right_wheel', frWheelGroup);
 
     // -------------------------------------------------------------
@@ -854,7 +938,7 @@ export class VehicleModel {
     frBrakeGroup.add(caliper);
 
     frBrakeGroup.userData = { componentId: 'brake_rotor_fr', surfaceId: 'surface_wheels' };
-    this.vehicleRoot.add(frBrakeGroup);
+    this.addProceduralBodyMesh(frBrakeGroup);
     this.interactiveMeshes.set('brake_rotor_fr', frBrakeGroup);
 
     // Front Strut Lower Clamp Bolt
@@ -864,7 +948,7 @@ export class VehicleModel {
     strutBolt.position.set(0.82, 0.52, 1.35);
     strutBolt.rotation.z = Math.PI / 2;
     strutBolt.userData = { componentId: 'suspension_strut_bolt', surfaceId: 'surface_wheels' };
-    this.vehicleRoot.add(strutBolt);
+    this.addProceduralBodyMesh(strutBolt);
     this.interactiveMeshes.set('suspension_strut_bolt', strutBolt);
 
     // Other 3 Complete Wheels & Brake Rotors
@@ -901,7 +985,7 @@ export class VehicleModel {
       wheelGroup.add(lug);
     }
 
-    this.vehicleRoot.add(wheelGroup);
+    this.addProceduralBodyMesh(wheelGroup);
 
     // Cross-drilled brake rotor inside wheel
     const rotorGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.03, 24);
@@ -909,13 +993,13 @@ export class VehicleModel {
     rotor.rotation.z = Math.PI / 2;
     const rotorX = isLeft ? x + 0.14 : x - 0.14;
     rotor.position.set(rotorX, y, z);
-    this.vehicleRoot.add(rotor);
+    this.addProceduralBodyMesh(rotor);
 
     // Signature M Blue Caliper
     const caliperGeo = new THREE.BoxGeometry(0.08, 0.16, 0.12);
     const caliper = new THREE.Mesh(caliperGeo, this.caliperMat);
     caliper.position.set(rotorX + (isLeft ? -0.02 : 0.02), y + 0.10, z + 0.06);
-    this.vehicleRoot.add(caliper);
+    this.addProceduralBodyMesh(caliper);
   }
 
   buildExhaustAndFuel() {
@@ -946,20 +1030,20 @@ export class VehicleModel {
       exhaustGroup.add(tip);
     });
 
-    this.vehicleRoot.add(exhaustGroup);
+    this.addProceduralBodyMesh(exhaustGroup);
 
     // 2. Fuel Tank (Located under rear seats: z = -0.90)
     const tankGeo = new THREE.BoxGeometry(1.10, 0.28, 0.72);
     const tankMesh = new THREE.Mesh(tankGeo, this.chassisMat);
     tankMesh.position.set(0, 0.22, -0.90);
-    this.vehicleRoot.add(tankMesh);
+    this.addProceduralBodyMesh(tankMesh);
 
     // 3. Fuel Filler Flap / Door (Rear Right Fender)
     const fuelDoorGeo = new THREE.BoxGeometry(0.04, 0.16, 0.16);
     const fuelDoorMesh = new THREE.Mesh(fuelDoorGeo, this.carPaintMat);
     fuelDoorMesh.position.set(0.92, 0.65, -1.20);
     fuelDoorMesh.userData = { componentId: 'fuel_filler_assembly', surfaceId: 'surface_body_exterior' };
-    this.vehicleRoot.add(fuelDoorMesh);
+    this.addProceduralBodyMesh(fuelDoorMesh);
     this.interactiveMeshes.set('fuel_filler_assembly', fuelDoorMesh);
   }
 
@@ -1005,7 +1089,20 @@ export class VehicleModel {
         this.engineBlockMesh.material = this.chassisMat;
       }
     }
+    if (this.carPaintMat) {
+      this.carPaintMat.transparent = active;
+      this.carPaintMat.opacity = active ? 0.35 : 1.0;
+    }
     this.pistonMeshes.forEach(p => p.visible = active);
+  }
+
+  toggleCutawayMode() {
+    this.setEngineCutaway(!this.isCutawayActive);
+    return this.isCutawayActive;
+  }
+
+  toggleCutaway() {
+    return this.toggleCutawayMode();
   }
 
   setComponentVisibility(componentId, visible) {
@@ -1073,6 +1170,154 @@ export class VehicleModel {
         const yPos = 0.28 - (dispMm / 1000.0);
         this.pistonMeshes[i].position.y = yPos;
       }
+    }
+  }
+
+  /**
+   * Asynchronously load real licensed BMW M4 (G82) GLB model
+   */
+  async loadGLBModel() {
+    if (typeof window === 'undefined') return;
+
+    let loadingEl = document.getElementById('glb-loading-status');
+    if (!loadingEl) {
+      loadingEl = document.createElement('div');
+      loadingEl.id = 'glb-loading-status';
+      loadingEl.style.cssText = `
+        position: fixed;
+        bottom: 74px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(13, 17, 23, 0.92);
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 8px 16px;
+        color: #58a6ff;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      `;
+      loadingEl.innerHTML = `<span>⏳</span><span>Loading BMW M4 G82 (22 MB)...</span>`;
+      document.body.appendChild(loadingEl);
+    }
+
+    const startTime = performance.now();
+
+    try {
+      const { GLTFLoader } = await import('../vendor/loaders/GLTFLoader.js');
+      const loader = new GLTFLoader();
+
+      loader.load(
+        'assets/models/bmw_m4.glb',
+        (gltf) => {
+          const loadTimeMs = (performance.now() - startTime).toFixed(0);
+          console.log(`BMW M4 GLB loaded in ${loadTimeMs} ms`);
+
+          const carModel = gltf.scene;
+
+          // Compute raw model bounds
+          const rawBox = new THREE.Box3().setFromObject(carModel);
+          const rawCenter = new THREE.Vector3();
+          rawBox.getCenter(rawCenter);
+          const rawSize = new THREE.Vector3();
+          rawBox.getSize(rawSize);
+
+          console.log('GLB Raw Center:', rawCenter, 'Raw Size:', rawSize);
+
+          // Center origin on X and Z, and place tires on floor (min.y = 0)
+          carModel.position.set(-rawCenter.x, -rawBox.min.y, -rawCenter.z);
+
+          const orientGroup = new THREE.Group();
+          orientGroup.add(carModel);
+
+          // Real BMW M4 length is 4.794 meters (Z-axis in glTF scene)
+          const scale = 4.794 / rawSize.z;
+          orientGroup.scale.setScalar(scale);
+
+          // Apply PBR Clearcoat, Glass, and Rubber materials
+          carModel.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+
+              const matName = child.material?.name || '';
+
+              if (matName.includes('body')) {
+                // Clearcoat PBR paint
+                child.material = this.carPaintMat;
+                child.userData = { componentId: 'car_body_shell', surfaceId: 'surface_body_exterior' };
+                this.interactiveMeshes.set('car_body_shell', child);
+              } else if (matName.includes('windows') || matName.includes('glass')) {
+                // Transparent glass
+                child.material = this.glassMat;
+              } else if (matName.includes('rim')) {
+                // Alloy rims
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0x111111,
+                  metalness: 0.92,
+                  roughness: 0.22
+                });
+              } else if (matName.includes('black') || matName.includes('tire')) {
+                // Rubber tires
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0x1a1a1e,
+                  roughness: 0.88,
+                  metalness: 0.05
+                });
+              } else if (matName.includes('Caliper')) {
+                // M Blue Calipers
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0x0055ff,
+                  roughness: 0.35,
+                  metalness: 0.6
+                });
+              }
+            }
+          });
+
+          this.glbCarGroup.clear();
+          this.glbCarGroup.add(orientGroup);
+          this.glbCarGroup.visible = true;
+          this.isGLBLoaded = true;
+
+          // Seamlessly hide procedural box body
+          if (this.proceduralBodyMeshes && this.proceduralBodyMeshes.length > 0) {
+            this.proceduralBodyMeshes.forEach(mesh => {
+              mesh.visible = false;
+            });
+          }
+
+          if (loadingEl) {
+            loadingEl.style.color = '#3fb950';
+            loadingEl.innerHTML = `<span>✅</span><span>BMW M4 G82 loaded (${loadTimeMs}ms)</span>`;
+            setTimeout(() => loadingEl.remove(), 2500);
+          }
+        },
+        (xhr) => {
+          if (xhr.lengthComputable && loadingEl) {
+            const pct = Math.floor((xhr.loaded / xhr.total) * 100);
+            loadingEl.innerHTML = `<span>⏳</span><span>Loading BMW M4 G82 (${pct}% - ${(xhr.loaded / 1048576).toFixed(1)}MB)...</span>`;
+          }
+        },
+        (error) => {
+          console.error('Error loading BMW M4 GLB:', error);
+          if (loadingEl) {
+            loadingEl.style.color = '#f85149';
+            loadingEl.innerHTML = `<span>⚠️</span><span>Failed to load bmw_m4.glb. Procedural model active.</span>`;
+          }
+          if (this.proceduralBodyMeshes && this.proceduralBodyMeshes.length > 0) {
+            this.proceduralBodyMeshes.forEach(mesh => {
+              mesh.visible = true;
+            });
+          }
+        }
+      );
+    } catch (err) {
+      console.warn('GLTFLoader load attempt bypassed in non-browser context:', err);
     }
   }
 }
