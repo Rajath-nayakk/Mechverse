@@ -10,8 +10,36 @@
  * - Hydraulic lift height and player progress
  */
 
-export const SAVE_SCHEMA_VERSION = '1.0.0';
+export const SAVE_SCHEMA_VERSION = '2.0.0';
 export const STORAGE_KEY = 'mechverse_garage_save_v1';
+
+export function migratePayload(payload) {
+  if (!payload.version) {
+    throw new Error('Corrupted save: missing schema version.');
+  }
+
+  // Migration from 1.0.0 -> 2.0.0
+  if (payload.version === '1.0.0') {
+    payload.careerState = {
+      shopBalance: 15000.0,
+      completedJobsCount: 0,
+      reputationScore: 4.8
+    };
+    payload.runningGearState = {
+      fluidFirmness: 1.0,
+      wheelLugTorques: { FL: 140, FR: 140, RL: 140, RR: 140 }
+    };
+    payload.graphicsSettings = {
+      preset: 'HIGH',
+      shadows: true,
+      antiAliasing: true
+    };
+    payload.version = '2.0.0';
+    payload.migratedFrom = '1.0.0';
+  }
+
+  return payload;
+}
 
 export class PersistenceSystem {
   constructor(storage = null) {
@@ -40,7 +68,16 @@ export class PersistenceSystem {
       },
       restorationPanels: data.restoration ? Array.from(data.restoration.panelStates.values()) : [],
       electricalFaults: data.electricalFaults || [],
-      conditionScores: data.conditionScores || {}
+      conditionScores: data.conditionScores || {},
+      careerState: data.career ? {
+        shopBalance: data.career.shopBalance,
+        completedJobsCount: data.career.completedJobs ? data.career.completedJobs.length : 0,
+        reputationScore: data.career.reputationScore
+      } : { shopBalance: 15000.0, completedJobsCount: 0, reputationScore: 4.8 },
+      runningGearState: data.runningGear ? {
+        fluidFirmness: data.runningGear.getOverallPedalFirmness ? data.runningGear.getOverallPedalFirmness() : 1.0
+      } : { fluidFirmness: 1.0 },
+      graphicsSettings: data.graphicsSettings || { preset: 'HIGH', shadows: true, antiAliasing: true }
     };
 
     const serialized = JSON.stringify(payload);
@@ -50,7 +87,7 @@ export class PersistenceSystem {
       this.storage.set(STORAGE_KEY, serialized);
     }
 
-    return { success: true, timestamp: payload.timestamp, sizeBytes: serialized.length };
+    return { success: true, timestamp: payload.timestamp, sizeBytes: serialized.length, version: payload.version };
   }
 
   loadGarageState() {
@@ -66,11 +103,9 @@ export class PersistenceSystem {
     }
 
     try {
-      const payload = JSON.parse(serialized);
-      if (!payload.version) {
-        throw new Error('Corrupted save: missing schema version.');
-      }
-      return { success: true, data: payload };
+      let payload = JSON.parse(serialized);
+      payload = migratePayload(payload);
+      return { success: true, data: payload, version: payload.version };
     } catch (err) {
       return { success: false, error: `Failed to load save: ${err.message}` };
     }
