@@ -116,3 +116,64 @@ test('Automated Render Smoke Test - 3D Raycasting Hit Detection', () => {
   const hitMesh = hits[0].object;
   assert.ok(hitMesh.isMesh, 'Intersected target must be a renderable THREE.Mesh');
 });
+
+test('Stage 1 Test - BMW M4 Competition (G82) Signature Aero & Materials', () => {
+  const scene = new THREE.Scene();
+  const garage = new GarageWorld(scene);
+  const vehicle = new VehicleModel(scene, garage.liftCarriageGroup);
+
+  // 1. Verify PBR Materials
+  assert.equal(vehicle.carPaintMat.clearcoat, 1.0, 'Automotive paint must feature full clearcoat (1.0)');
+  assert.ok(vehicle.carbonMat, 'Carbon fiber material must exist for roof');
+  assert.equal(vehicle.caliperMat.color.getHex(), 0x0055b8, 'Brake calipers must use signature BMW M blue enamel (0x0055b8)');
+
+  // 2. Verify Bonnet Hinge & Interactive Mesh
+  const bonnet = vehicle.interactiveMeshes.get('bonnet_hood');
+  assert.ok(bonnet, 'Bonnet hood must be registered as interactive');
+  assert.ok(bonnet.children.length > 0, 'Bonnet group must contain geometric children');
+
+  // 3. Verify Carbon Roof & Aero Channel
+  let hasCarbonRoof = false;
+  vehicle.vehicleRoot.traverse(node => {
+    if (node.isMesh && node.material === vehicle.carbonMat) {
+      hasCarbonRoof = true;
+    }
+  });
+  assert.ok(hasCarbonRoof, 'Vehicle unibody must contain carbon fiber roof mesh');
+
+  // 4. Verify 4 Brake Calipers use M Blue Caliper Material
+  let mBlueCaliperCount = 0;
+  vehicle.vehicleRoot.traverse(node => {
+    if (node.isMesh && node.material === vehicle.caliperMat) {
+      mBlueCaliperCount++;
+    }
+  });
+  assert.ok(mBlueCaliperCount >= 4, `All 4 wheels must be equipped with M blue brake calipers, found ${mBlueCaliperCount}`);
+});
+
+test('Stage 1 Test - Garage Bays: Paint Booth, Wash Bay, Refueling & Engine Stand', () => {
+  const scene = new THREE.Scene();
+  const garage = new GarageWorld(scene);
+
+  // 1. Verify Colliders Array
+  assert.ok(Array.isArray(garage.colliders), 'garage.colliders must be an array');
+  assert.ok(garage.colliders.length >= 8, `Garage must register at least 8 obstacle colliders, found ${garage.colliders.length}`);
+
+  // 2. Verify Collision Resolution against Hydraulic Lift Left Post (x = -1.6, z = 0)
+  const posAtLiftPost = { x: -1.6, z: 0.1 };
+  const resolvedPost = garage.checkCollision(posAtLiftPost, 0.35);
+  const distFromPost = Math.hypot(resolvedPost.x - (-1.6), resolvedPost.z - 0);
+  assert.ok(distFromPost >= 0.74, `Player must be pushed outside post radius (0.4m + 0.35m = 0.75m), got ${distFromPost.toFixed(2)}m`);
+
+  // 3. Verify Collision Resolution against Vehicle Unibody when lift is down
+  garage.liftHeight = 0.0;
+  const posInsideHood = { x: 0.0, z: 1.5 };
+  const resolvedCar = garage.checkCollision(posInsideHood, 0.35);
+  assert.ok(Math.abs(resolvedCar.x) >= 1.35 || Math.abs(resolvedCar.z) >= 2.70, 'Player must be pushed outside vehicle unibody bounding volume when lift is down');
+
+  // 4. Verify Walking Under Vehicle when lift is raised high (1.8m)
+  garage.liftHeight = 1.8;
+  const resolvedUnderCar = garage.checkCollision(posInsideHood, 0.35);
+  assert.equal(resolvedUnderCar.x, 0.0, 'Player should be able to walk under vehicle when lift is raised');
+  assert.equal(resolvedUnderCar.z, 1.5, 'Player should be able to walk under vehicle when lift is raised');
+});

@@ -80,12 +80,12 @@ controls.minDistance = 0.8;
 controls.maxDistance = 14.0;
 controls.target.set(0, 0.85, 0);
 
-// Workshop Dual-Mode Controls (Orbit + First-Person Walk)
-const workshopControls = new WorkshopControls(camera, renderer.domElement, controls);
-
 // Initialize 3D Garage & Vehicle
 const garage = new GarageWorld(scene);
 const vehicle = new VehicleModel(scene, garage.liftCarriageGroup);
+
+// Workshop Dual-Mode Controls (Orbit + First-Person Walk with Obstacle Collision)
+const workshopControls = new WorkshopControls(camera, renderer.domElement, controls, garage);
 
 // Notification Toast System
 function showToast(message, type = 'info') {

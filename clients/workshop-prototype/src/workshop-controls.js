@@ -9,10 +9,11 @@ import * as THREE from '../vendor/three.module.js';
  */
 
 export class WorkshopControls {
-  constructor(camera, domElement, orbitControls) {
+  constructor(camera, domElement, orbitControls, garageWorld = null) {
     this.camera = camera;
     this.domElement = domElement;
     this.orbitControls = orbitControls;
+    this.garageWorld = garageWorld;
 
     this.mode = 'ORBIT'; // 'ORBIT' or 'FIRST_PERSON'
     
@@ -146,12 +147,17 @@ export class WorkshopControls {
 
     if (moveVector.lengthSq() > 0) {
       moveVector.normalize().multiplyScalar(speed * deltaTime);
-      this.playerPos.add(moveVector);
-    }
+      const targetPos = this.playerPos.clone().add(moveVector);
 
-    // Clamp within garage boundaries ([-16.5, 16.5])
-    this.playerPos.x = Math.max(-16.0, Math.min(16.0, this.playerPos.x));
-    this.playerPos.z = Math.max(-16.0, Math.min(16.0, this.playerPos.z));
+      if (this.garageWorld && typeof this.garageWorld.checkCollision === 'function') {
+        const resolved = this.garageWorld.checkCollision(targetPos);
+        this.playerPos.x = resolved.x;
+        this.playerPos.z = resolved.z;
+      } else {
+        this.playerPos.x = Math.max(-16.0, Math.min(16.0, targetPos.x));
+        this.playerPos.z = Math.max(-16.0, Math.min(16.0, targetPos.z));
+      }
+    }
 
     // Eye level height: standing = 1.7m, crouching = 1.0m
     const targetY = this.keys.crouch ? 0.95 : 1.70;

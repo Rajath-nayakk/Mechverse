@@ -45,11 +45,13 @@ export class VehicleModel {
   }
 
   initMaterials() {
-    // Factory Deep Metallic Blue Body Paint
-    this.carPaintMat = new THREE.MeshStandardMaterial({
-      color: 0x1f6feb,
-      metalness: 0.82,
-      roughness: 0.22
+    // BMW M4 Competition (G82) Multi-layer PBR Metallic Lacquer with High-Gloss Clearcoat
+    this.carPaintMat = new THREE.MeshPhysicalMaterial({
+      color: 0x1d4ed8, // Tanzanite / Portimao Blue Metallic
+      metalness: 0.88,
+      roughness: 0.16,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.04
     });
 
     // Dark Unibody Steel & Subframe
@@ -59,11 +61,20 @@ export class VehicleModel {
       metalness: 0.75
     });
 
-    // Satin Black Trim / Bumpers / Grille
+    // BMW Shadowline High-Gloss Black Trim & Kidney Slats
     this.trimMat = new THREE.MeshStandardMaterial({
-      color: 0x0d1117,
-      roughness: 0.8,
-      metalness: 0.2
+      color: 0x0a0c10,
+      roughness: 0.15,
+      metalness: 0.85
+    });
+
+    // Lightweight Carbon Fiber Roof with Clearcoat
+    this.carbonMat = new THREE.MeshPhysicalMaterial({
+      color: 0x14181f,
+      roughness: 0.35,
+      metalness: 0.35,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.08
     });
 
     // Automotive Safety Glass (Tinted Windshield & Windows)
@@ -84,18 +95,25 @@ export class VehicleModel {
       metalness: 0.85
     });
 
-    // Polished Chrome (Exhaust tips, emblems)
+    // Polished Chrome / Stainless Steel (Quad M Exhaust tips, badges)
     this.chromeMat = new THREE.MeshStandardMaterial({
       color: 0xf0f6fc,
       metalness: 0.98,
       roughness: 0.05
     });
 
-    // Red Brake Caliper Enamel
+    // BMW M Sport Compound Brake Caliper Enamel (Signature M Blue)
     this.caliperMat = new THREE.MeshStandardMaterial({
-      color: 0xd9383a,
-      roughness: 0.3,
-      metalness: 0.4
+      color: 0x0055b8,
+      roughness: 0.25,
+      metalness: 0.5
+    });
+
+    // Cross-Drilled Ventilated Brake Rotor Steel
+    this.rotorMat = new THREE.MeshStandardMaterial({
+      color: 0xb0b8c4,
+      metalness: 0.94,
+      roughness: 0.22
     });
 
     // Black Textured Interior Leather & Upholstery
@@ -175,66 +193,124 @@ export class VehicleModel {
   }
 
   buildFasciasAndAero() {
-    // Front Bumper with air intakes
+    // Front Bumper Assembly with M4 G82 Sculpted Aerodynamics
     const frontBumperGroup = new THREE.Group();
     frontBumperGroup.position.set(0, 0.36, 2.18);
 
-    const bumperGeo = new THREE.BoxGeometry(1.82, 0.42, 0.32);
+    const bumperGeo = new THREE.BoxGeometry(1.84, 0.44, 0.34);
     const bumperMesh = new THREE.Mesh(bumperGeo, this.carPaintMat);
     frontBumperGroup.add(bumperMesh);
 
-    // Front Mesh Grille & Splitter
-    const grilleGeo = new THREE.BoxGeometry(1.0, 0.22, 0.08);
-    const grilleMesh = new THREE.Mesh(grilleGeo, this.trimMat);
-    grilleMesh.position.set(0, 0.02, 0.15);
-    frontBumperGroup.add(grilleMesh);
+    // --- Iconic BMW M4 G82 Frameless Vertical Twin Kidney Grilles ---
+    [-0.19, 0.19].forEach(gx => {
+      // Tall vertical kidney frame
+      const kidneyFrameGeo = new THREE.BoxGeometry(0.24, 0.54, 0.06);
+      const kidneyFrame = new THREE.Mesh(kidneyFrameGeo, this.trimMat);
+      kidneyFrame.position.set(gx, 0.12, 0.18);
+      frontBumperGroup.add(kidneyFrame);
 
-    const splitterGeo = new THREE.BoxGeometry(1.86, 0.04, 0.25);
-    const splitter = new THREE.Mesh(splitterGeo, this.trimMat);
-    splitter.position.set(0, -0.19, 0.06);
+      // Horizontal double slats inside each kidney grille
+      for (let s = -0.18; s <= 0.18; s += 0.08) {
+        const slatGeo = new THREE.BoxGeometry(0.21, 0.015, 0.07);
+        const slat = new THREE.Mesh(slatGeo, this.trimMat);
+        slat.position.set(gx, 0.12 + s, 0.18);
+        frontBumperGroup.add(slat);
+      }
+    });
+
+    // M4 Competition Grille Badge
+    const badgeGeo = new THREE.BoxGeometry(0.06, 0.02, 0.02);
+    const badgeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
+    const badge = new THREE.Mesh(badgeGeo, badgeMat);
+    badge.position.set(0.18, 0.26, 0.22);
+    frontBumperGroup.add(badge);
+
+    // Lateral Brake Cooling Air Inlets
+    [-0.64, 0.64].forEach(lx => {
+      const inletGeo = new THREE.BoxGeometry(0.32, 0.24, 0.08);
+      const inlet = new THREE.Mesh(inletGeo, this.trimMat);
+      inlet.position.set(lx, -0.04, 0.16);
+      frontBumperGroup.add(inlet);
+    });
+
+    // Carbon Aero Front Splitter with Lateral Winglets
+    const splitterGeo = new THREE.BoxGeometry(1.88, 0.04, 0.32);
+    const splitter = new THREE.Mesh(splitterGeo, this.carbonMat);
+    splitter.position.set(0, -0.20, 0.08);
     frontBumperGroup.add(splitter);
 
-    // Front License Plate
+    [-0.92, 0.92].forEach(wx => {
+      const wingletGeo = new THREE.BoxGeometry(0.04, 0.10, 0.20);
+      const winglet = new THREE.Mesh(wingletGeo, this.carbonMat);
+      winglet.position.set(wx, -0.15, 0.12);
+      frontBumperGroup.add(winglet);
+    });
+
+    // License Plate
     const plateGeo = new THREE.BoxGeometry(0.48, 0.12, 0.02);
     const plateMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
     const plate = new THREE.Mesh(plateGeo, plateMat);
-    plate.position.set(0, -0.06, 0.18);
+    plate.position.set(0, -0.06, 0.20);
     frontBumperGroup.add(plate);
 
     this.vehicleRoot.add(frontBumperGroup);
 
-    // Rear Bumper with Lower Diffuser
+    // Rear Bumper with M Diffuser & Quad Exhaust
     const rearBumperGroup = new THREE.Group();
     rearBumperGroup.position.set(0, 0.38, -2.18);
 
-    const rBumperGeo = new THREE.BoxGeometry(1.82, 0.45, 0.32);
+    const rBumperGeo = new THREE.BoxGeometry(1.84, 0.46, 0.34);
     const rBumperMesh = new THREE.Mesh(rBumperGeo, this.carPaintMat);
     rearBumperGroup.add(rBumperMesh);
 
-    // Rear Diffuser
-    const diffuserGeo = new THREE.BoxGeometry(1.4, 0.18, 0.16);
+    // High-Gloss Black M Rear Diffuser with Central Vertical Strakes
+    const diffuserGeo = new THREE.BoxGeometry(1.46, 0.22, 0.18);
     const diffuser = new THREE.Mesh(diffuserGeo, this.trimMat);
-    diffuser.position.set(0, -0.16, -0.12);
+    diffuser.position.set(0, -0.16, -0.14);
     rearBumperGroup.add(diffuser);
+
+    [-0.22, 0, 0.22].forEach(sx => {
+      const strakeGeo = new THREE.BoxGeometry(0.025, 0.16, 0.18);
+      const strake = new THREE.Mesh(strakeGeo, this.trimMat);
+      strake.position.set(sx, -0.18, -0.14);
+      rearBumperGroup.add(strake);
+    });
+
+    // Quad 90mm Polished Stainless Steel M Exhaust Tips
+    [-0.52, -0.40, 0.40, 0.52].forEach(exX => {
+      const tipGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.16, 16);
+      const tip = new THREE.Mesh(tipGeo, this.chromeMat);
+      tip.rotation.x = Math.PI / 2;
+      tip.position.set(exX, -0.16, -0.22);
+      rearBumperGroup.add(tip);
+    });
 
     this.vehicleRoot.add(rearBumperGroup);
 
-    // Front Headlight Assemblies (Composite LED/Halogen)
-    [-0.68, 0.68].forEach((x, i) => {
+    // Slim Aggressive LED Headlights with L-Shaped DRL Signatures
+    [-0.68, 0.68].forEach((x) => {
       const hlGroup = new THREE.Group();
       hlGroup.position.set(x, 0.56, 2.12);
 
-      const hlHousingGeo = new THREE.BoxGeometry(0.36, 0.16, 0.20);
+      const hlHousingGeo = new THREE.BoxGeometry(0.38, 0.14, 0.22);
       const hlMesh = new THREE.Mesh(hlHousingGeo, this.glassMat);
       hlGroup.add(hlMesh);
 
-      // Inner projector lamp
-      const projGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.08, 16);
-      const projMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xdbeafe, emissiveIntensity: 0.4 });
-      const projector = new THREE.Mesh(projGeo, projMat);
-      projector.rotation.x = Math.PI / 2;
-      projector.position.set(x > 0 ? 0.05 : -0.05, 0, 0.05);
-      hlGroup.add(projector);
+      // Dual L-shaped LED Light Guides
+      [-0.07, 0.07].forEach(lx => {
+        const drlGeo = new THREE.BoxGeometry(0.08, 0.02, 0.08);
+        const drlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xe0f2fe, emissiveIntensity: 0.8 });
+        const drl = new THREE.Mesh(drlGeo, drlMat);
+        drl.position.set(lx, -0.03, 0.06);
+        hlGroup.add(drl);
+
+        const projGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.07, 16);
+        const projMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.4 });
+        const proj = new THREE.Mesh(projGeo, projMat);
+        proj.rotation.x = Math.PI / 2;
+        proj.position.set(lx, 0.01, 0.05);
+        hlGroup.add(proj);
+      });
 
       if (x > 0) {
         hlGroup.userData = { componentId: 'headlight_assembly_fr', surfaceId: 'surface_body_exterior' };
@@ -243,15 +319,15 @@ export class VehicleModel {
       this.vehicleRoot.add(hlGroup);
     });
 
-    // Rear Tail Light Assemblies (Ruby Red Acrylic)
+    // Sculpted OLED Tail Light Clusters
     const tailMat = new THREE.MeshStandardMaterial({
       color: 0xba1a1a,
       roughness: 0.2,
       emissive: 0x7a0c0c,
-      emissiveIntensity: 0.3
+      emissiveIntensity: 0.4
     });
     [-0.72, 0.72].forEach(x => {
-      const tlGeo = new THREE.BoxGeometry(0.32, 0.14, 0.12);
+      const tlGeo = new THREE.BoxGeometry(0.34, 0.12, 0.14);
       const tlMesh = new THREE.Mesh(tlGeo, tailMat);
       tlMesh.position.set(x, 0.64, -2.14);
       this.vehicleRoot.add(tlMesh);
@@ -259,14 +335,20 @@ export class VehicleModel {
   }
 
   buildRoofAndGlass() {
-    // Sleek Roof Panel (Center cabin)
+    // Lightweight Carbon Fiber Roof Panel with central aerodynamic channel
     const roofGeo = new THREE.BoxGeometry(1.42, 0.05, 1.85);
-    const roofMesh = new THREE.Mesh(roofGeo, this.carPaintMat);
+    const roofMesh = new THREE.Mesh(roofGeo, this.carbonMat);
     roofMesh.position.set(0, 1.28, -0.15);
     roofMesh.castShadow = true;
     this.vehicleRoot.add(roofMesh);
 
-    // Front Windshield Glass (Angled aerodynamic rake)
+    // Central aerodynamic recess channel
+    const recessGeo = new THREE.BoxGeometry(0.36, 0.02, 1.80);
+    const recessMesh = new THREE.Mesh(recessGeo, this.trimMat);
+    recessMesh.position.set(0, 1.29, -0.15);
+    this.vehicleRoot.add(recessMesh);
+
+    // Front Windshield Glass
     const wsGeo = new THREE.PlaneGeometry(1.38, 0.88);
     const windshield = new THREE.Mesh(wsGeo, this.glassMat);
     windshield.position.set(0, 1.05, 0.95);
@@ -320,11 +402,13 @@ export class VehicleModel {
     hoodPlate.castShadow = true;
     bonnetMesh.add(hoodPlate);
 
-    // Aerodynamic Hood Power Bulge / Center Spine
-    const bulgeGeo = new THREE.BoxGeometry(0.68, 0.03, 1.15);
-    const bulge = new THREE.Mesh(bulgeGeo, this.carPaintMat);
-    bulge.position.set(0, 0.045, 0.64);
-    bonnetMesh.add(bulge);
+    // Dual Sculpted Aerodynamic Hood Power Channels / Spines aligned with vertical kidneys
+    [-0.19, 0.19].forEach(px => {
+      const channelGeo = new THREE.BoxGeometry(0.18, 0.025, 1.20);
+      const channel = new THREE.Mesh(channelGeo, this.carPaintMat);
+      channel.position.set(px, 0.045, 0.64);
+      bonnetMesh.add(channel);
+    });
 
     bonnetHingeGroup.add(bonnetMesh);
     bonnetHingeGroup.userData = { componentId: 'bonnet_hood', surfaceId: 'surface_body_exterior' };
@@ -368,12 +452,37 @@ export class VehicleModel {
       handle.position.set(d.isLeft ? -0.04 : 0.04, 0.15, zOffset - d.width * 0.35);
       doorMesh.add(handle);
 
-      // Aerodynamic Side View Mirror (Front doors only)
+      // Signature BMW M Aerodynamic Double-Stalk Side View Mirror (Front doors only)
       if (d.key === 'doorFL' || d.key === 'doorFR') {
-        const mirrorGeo = new THREE.BoxGeometry(0.12, 0.10, 0.18);
-        const mirror = new THREE.Mesh(mirrorGeo, this.trimMat);
-        mirror.position.set(d.isLeft ? -0.10 : 0.10, d.height * 0.45, -0.08);
-        doorMesh.add(mirror);
+        const mirrorGroup = new THREE.Group();
+        const mX = d.isLeft ? -0.12 : 0.12;
+        mirrorGroup.position.set(mX, d.height * 0.45, -0.08);
+
+        // Lower main aerodynamic stalk
+        const lowerStalkGeo = new THREE.BoxGeometry(0.08, 0.02, 0.04);
+        const lowerStalk = new THREE.Mesh(lowerStalkGeo, this.trimMat);
+        lowerStalk.position.set(0, -0.04, 0);
+        mirrorGroup.add(lowerStalk);
+
+        // Upper M signature aero winglet / floating stalk
+        const upperWingGeo = new THREE.BoxGeometry(0.07, 0.015, 0.08);
+        const upperWing = new THREE.Mesh(upperWingGeo, this.trimMat);
+        upperWing.position.set(d.isLeft ? 0.02 : -0.02, 0.05, 0.02);
+        upperWing.rotation.y = d.isLeft ? 0.2 : -0.2;
+        mirrorGroup.add(upperWing);
+
+        // Sculpted Mirror Housing
+        const mirrorHousingGeo = new THREE.BoxGeometry(0.12, 0.09, 0.18);
+        const mirrorHousing = new THREE.Mesh(mirrorHousingGeo, this.carPaintMat);
+        mirrorGroup.add(mirrorHousing);
+
+        // Reflective mirror glass face
+        const mirrorGlassGeo = new THREE.BoxGeometry(0.01, 0.08, 0.16);
+        const mirrorGlass = new THREE.Mesh(mirrorGlassGeo, this.chromeMat);
+        mirrorGlass.position.set(d.isLeft ? 0.06 : -0.06, 0, 0);
+        mirrorGroup.add(mirrorGlass);
+
+        doorMesh.add(mirrorGroup);
       }
 
       hinge.add(doorMesh);
@@ -734,13 +843,12 @@ export class VehicleModel {
     frBrakeGroup.position.set(0.88, 0.35, 1.35);
 
     const rotorGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.035, 32);
-    const rotorMat = new THREE.MeshStandardMaterial({ color: 0xafb8c1, metalness: 0.95, roughness: 0.25 });
-    const rotor = new THREE.Mesh(rotorGeo, rotorMat);
+    const rotor = new THREE.Mesh(rotorGeo, this.rotorMat);
     rotor.rotation.z = Math.PI / 2;
     frBrakeGroup.add(rotor);
 
-    // Red Brembo-Style 4-Piston Caliper
-    const caliperGeo = new THREE.BoxGeometry(0.08, 0.16, 0.12);
+    // Signature M Blue 6-Piston High-Performance Caliper
+    const caliperGeo = new THREE.BoxGeometry(0.08, 0.18, 0.13);
     const caliper = new THREE.Mesh(caliperGeo, this.caliperMat);
     caliper.position.set(0.02, 0.12, 0.08);
     frBrakeGroup.add(caliper);
@@ -782,15 +890,32 @@ export class VehicleModel {
     rim.rotation.z = Math.PI / 2;
     wheelGroup.add(rim);
 
+    // 5x Lug nuts
+    const lugMat = new THREE.MeshStandardMaterial({ color: 0x8c959f, metalness: 0.9, roughness: 0.3 });
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 2 * Math.PI) / 5;
+      const lugGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.035, 6);
+      const lug = new THREE.Mesh(lugGeo, lugMat);
+      lug.rotation.z = Math.PI / 2;
+      lug.position.set(isLeft ? -0.13 : 0.13, Math.sin(angle) * 0.10, Math.cos(angle) * 0.10);
+      wheelGroup.add(lug);
+    }
+
     this.vehicleRoot.add(wheelGroup);
 
-    // Brake disc inside wheel
-    const rotorGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.03, 24);
-    const rotorMat = new THREE.MeshStandardMaterial({ color: 0xafb8c1, metalness: 0.95, roughness: 0.25 });
-    const rotor = new THREE.Mesh(rotorGeo, rotorMat);
+    // Cross-drilled brake rotor inside wheel
+    const rotorGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.03, 24);
+    const rotor = new THREE.Mesh(rotorGeo, this.rotorMat);
     rotor.rotation.z = Math.PI / 2;
-    rotor.position.set(isLeft ? x + 0.14 : x - 0.14, y, z);
+    const rotorX = isLeft ? x + 0.14 : x - 0.14;
+    rotor.position.set(rotorX, y, z);
     this.vehicleRoot.add(rotor);
+
+    // Signature M Blue Caliper
+    const caliperGeo = new THREE.BoxGeometry(0.08, 0.16, 0.12);
+    const caliper = new THREE.Mesh(caliperGeo, this.caliperMat);
+    caliper.position.set(rotorX + (isLeft ? -0.02 : 0.02), y + 0.10, z + 0.06);
+    this.vehicleRoot.add(caliper);
   }
 
   buildExhaustAndFuel() {
