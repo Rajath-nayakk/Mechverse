@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EngineSimulation, ENGINE_SPECS, MECHANICAL_FAULTS } from '../clients/workshop-prototype/src/engine-simulation.js';
+import { EngineSimulation, ENGINE_SPECS, ENGINE_SPECS_S58, ENGINE_SPECS_V12, S58_DISASSEMBLY_TREE, V12SwapFeasibilityChecker, MECHANICAL_FAULTS } from '../clients/workshop-prototype/src/engine-simulation.js';
 
 test('EngineSimulation - Initial specs and healthy compression baseline', () => {
   const engine = new EngineSimulation();
@@ -110,4 +110,85 @@ test('EngineSimulation - Engine Oil Draining & Refilling Workflow', () => {
   assert.equal(successRefill.success, true);
   assert.equal(engine.engineOilLiters, 4.5);
   assert.ok(engine.oilConditionPercent > 80.0);
+});
+
+test('Stage 3: Factory BMW S58 Twin-Turbo DOHC I6 Specification', () => {
+  const engine = new EngineSimulation();
+  engine.setEngineType('S58');
+
+  assert.equal(engine.specs.cylinders, 6);
+  assert.equal(engine.specs.displacementLiters, 2.993);
+  assert.equal(engine.specs.twinTurbos, true);
+  assert.equal(engine.specs.compressionRatio, 9.3);
+  assert.deepEqual(engine.specs.firingOrder, [1, 5, 3, 6, 2, 4]);
+  assert.equal(engine.cylinderHealth.length, 6);
+  assert.equal(engine.specs.oilCapacityLiters, 7.0);
+});
+
+test('Stage 3: S58 Teardown Hierarchy & Disassembly Prerequisites', () => {
+  const engine = new EngineSimulation();
+  const removedParts = new Set();
+
+  // Cannot remove spark plugs before removing ignition coils
+  const sparkPlugCheck = engine.canRemoveDisassemblyComponent('spark_plugs', removedParts);
+  assert.equal(sparkPlugCheck.allowed, false);
+  assert.ok(sparkPlugCheck.missingPrereqs.includes('ignition_coils'));
+
+  // Remove engine cover and coils
+  removedParts.add('engine_cover');
+  removedParts.add('ignition_coils');
+
+  // Now spark plugs can be removed
+  const sparkPlugAllowed = engine.canRemoveDisassemblyComponent('spark_plugs', removedParts);
+  assert.equal(sparkPlugAllowed.allowed, true);
+  removedParts.add('spark_plugs');
+
+  // Cannot remove cylinder head before head bolts and twin turbos
+  const headCheck = engine.canRemoveDisassemblyComponent('cylinder_head', removedParts);
+  assert.equal(headCheck.allowed, false);
+  assert.ok(headCheck.missingPrereqs.includes('head_bolts'));
+});
+
+test('Stage 3: Custom 6.0L V12 Swap Feasibility Evaluation', () => {
+  const evaluation = V12SwapFeasibilityChecker.evaluateFeasibility();
+
+  assert.equal(evaluation.isFeasible, true);
+  assert.ok(evaluation.overallScore >= 85, `Overall feasibility score should be high, got ${evaluation.overallScore}`);
+  assert.equal(evaluation.clearances.lengthPass, true);
+  assert.equal(evaluation.clearances.widthPass, true);
+  assert.equal(evaluation.clearances.heightPass, true);
+
+  // Weight distribution check: front shifts by approx +1.9%
+  assert.ok(evaluation.weightDistribution.newFrontPct > evaluation.weightDistribution.originalFrontPct);
+  assert.ok(evaluation.weightDistribution.shiftDeltaPct < 3.0, 'Weight shift should be manageable under 3%');
+  assert.ok(evaluation.swapRequirements.length >= 4);
+});
+
+test('Stage 3: 4-Stroke Kinematic Cycle and Valvetrain Profiles', () => {
+  const engine = new EngineSimulation();
+  engine.setEngineType('S58');
+
+  // Stroke detection across 720 degrees for Cyl 1 (firing offset = 0)
+  assert.equal(engine.getCycleStroke(1, 45), 'INTAKE');
+  assert.equal(engine.getCycleStroke(1, 220), 'COMPRESSION');
+  assert.equal(engine.getCycleStroke(1, 400), 'POWER');
+  assert.equal(engine.getCycleStroke(1, 600), 'EXHAUST');
+
+  // Valvetrain valve lift: Intake valve must lift during intake stroke
+  const intakeState = engine.getValveLiftMm(1, 90);
+  assert.ok(intakeState.intakeLiftMm > 6.0, `Intake valve must be lifted at 90 deg, got ${intakeState.intakeLiftMm}mm`);
+  assert.equal(intakeState.exhaustLiftMm, 0.0);
+
+  // Instantaneous pressure: Peak power stroke pressure must exceed compression pressure
+  const compPress = engine.getInstantaneousPressurePsi(1, 340);
+  const powerPress = engine.getInstantaneousPressurePsi(1, 370);
+  assert.ok(powerPress > compPress * 2.0, `Combustion power pressure (${powerPress.toFixed(0)} PSI) must spike well above compression (${compPress.toFixed(0)} PSI)`);
+
+  // Piston kinematics at TDC vs BDC
+  const kinTDC = engine.getPistonKinematics(1, 0, 1000);
+  assert.ok(Math.abs(kinTDC.displacementMm) < 0.1);
+  assert.ok(Math.abs(kinTDC.velocityMps) < 0.1);
+
+  const kinMid = engine.getPistonKinematics(1, Math.PI / 2, 1000);
+  assert.ok(Math.abs(kinMid.velocityMps) > 3.0, 'Piston velocity should peak near mid-stroke');
 });

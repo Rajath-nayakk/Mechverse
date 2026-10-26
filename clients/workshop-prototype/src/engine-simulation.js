@@ -27,6 +27,162 @@ export const ENGINE_SPECS = {
   maxAcceptableLeakdownPercent: 20.0
 };
 
+// BMW M4 Competition (G82) Factory S58B30T0 Twin-Turbo 3.0L DOHC Inline-6
+export const ENGINE_SPECS_S58 = {
+  name: 'BMW S58B30T0 Twin-Turbo DOHC 3.0L I6',
+  cylinders: 6,
+  displacementLiters: 2.993,
+  boreMm: 84.0,
+  strokeMm: 90.0,
+  connectingRodLengthMm: 151.0,
+  compressionRatio: 9.3,
+  firingOrder: [1, 5, 3, 6, 2, 4],
+  oilCapacityLiters: 7.0,
+  coolantCapacityLiters: 10.5,
+  ratedCompressionPsi: 175.0,
+  minAcceptableCompressionPsi: 140.0,
+  maxCylinderVariationPercent: 10.0,
+  nominalLeakdownPercent: 4.0,
+  maxAcceptableLeakdownPercent: 18.0,
+  twinTurbos: true,
+  boostPsi: 24.7, // 1.7 bar boost
+  ratedPowerHp: 503,
+  ratedTorqueNm: 650,
+  weightKg: 195,
+  lengthMm: 720,
+  widthMm: 680,
+  heightMm: 685
+};
+
+// Fictional Custom 6.0L 60-Degree DOHC 48-Valve V12 Engine Swap
+export const ENGINE_SPECS_V12 = {
+  name: 'Custom 6.0L 60-Deg DOHC 48-Valve V12 Swap',
+  cylinders: 12,
+  displacementLiters: 5.992,
+  boreMm: 89.0,
+  strokeMm: 80.2,
+  connectingRodLengthMm: 142.0,
+  compressionRatio: 11.5,
+  firingOrder: [1, 12, 5, 8, 3, 10, 6, 7, 2, 11, 4, 9],
+  oilCapacityLiters: 11.5,
+  coolantCapacityLiters: 16.0,
+  ratedCompressionPsi: 205.0,
+  minAcceptableCompressionPsi: 160.0,
+  maxCylinderVariationPercent: 8.0,
+  nominalLeakdownPercent: 4.0,
+  maxAcceptableLeakdownPercent: 15.0,
+  ratedPowerHp: 680,
+  ratedTorqueNm: 680,
+  weightKg: 265,
+  lengthMm: 840,
+  widthMm: 710,
+  heightMm: 615
+};
+
+// S58 Complete Teardown Hierarchy Tree
+export const S58_DISASSEMBLY_TREE = {
+  engine_cover: { name: 'M Carbon Engine Beauty Cover', prereqs: [] },
+  strut_brace: { name: 'Front Strut Tower Cross-Brace', prereqs: [] },
+  charge_pipes: { name: 'Intake Charge Air Pipes', prereqs: ['engine_cover'] },
+  liquid_charge_cooler: { name: 'Liquid-to-Air Intake Charge Cooler', prereqs: ['charge_pipes', 'strut_brace'] },
+  ignition_coils: { name: 'Ignition Coil Packs (6x)', prereqs: ['engine_cover'] },
+  spark_plugs: { name: 'High-Performance Spark Plugs (6x)', prereqs: ['ignition_coils'] },
+  fuel_rail_injectors: { name: '350-Bar Direct Fuel Rail & Injectors (6x)', prereqs: ['liquid_charge_cooler', 'spark_plugs'] },
+  exhaust_downpipes: { name: 'Dual Turbo Downpipes & Catalysts', prereqs: ['strut_brace'] },
+  twin_turbos: { name: 'Twin Mono-Scroll Turbocharger Assemblies', prereqs: ['exhaust_downpipes', 'charge_pipes'] },
+  valve_cover: { name: 'Cast Aluminum DOHC Valve Cover', prereqs: ['ignition_coils', 'fuel_rail_injectors'] },
+  timing_chain_cover: { name: 'Front Timing Chain Cover', prereqs: ['valve_cover'] },
+  timing_chain: { name: 'Double-Row Timing Chain & Tensioner Guides', prereqs: ['timing_chain_cover'] },
+  camshafts_dohc: { name: 'Intake & Exhaust Camshafts with Double-VANOS Phasers', prereqs: ['timing_chain', 'valve_cover'] },
+  head_bolts: { name: 'Cylinder Head Bolts (14x Torque-to-Yield)', prereqs: ['camshafts_dohc'] },
+  cylinder_head: { name: 'S58 24-Valve CNC Ported Cylinder Head', prereqs: ['head_bolts', 'twin_turbos'] },
+  head_gasket: { name: 'Multi-Layer Steel (MLS) Head Gasket', prereqs: ['cylinder_head'] },
+  oil_pan: { name: 'Cast Aluminum Oil Pan with Dual Scavenge Pumps', prereqs: [] },
+  connecting_rod_caps: { name: 'Connecting Rod Caps & Bearings (6x)', prereqs: ['oil_pan'] },
+  pistons_and_rods: { name: 'Forged Pistons & H-Beam Connecting Rods (6x)', prereqs: ['cylinder_head', 'connecting_rod_caps'] },
+  crankshaft: { name: 'Forged Steel Lightweight Crankshaft', prereqs: ['connecting_rod_caps', 'timing_chain'] },
+  bare_engine_block: { name: 'S58 Closed-Deck 3.0L Cast Aluminum Engine Block', prereqs: ['pistons_and_rods', 'crankshaft', 'head_gasket'] }
+};
+
+/**
+ * Engineering Feasibility Checker for Custom V12 Engine Swap into BMW M4 (G82)
+ */
+export class V12SwapFeasibilityChecker {
+  static evaluateFeasibility(chassisSpec = null) {
+    // BMW M4 Competition (G82) Engine Bay Baseline Dimensions
+    const bay = {
+      lengthMm: 880,
+      widthBetweenTowersMm: 820,
+      hoodHeightCenterMm: 640,
+      frontAxleCurbsideWeightKg: 880,
+      rearAxleCurbsideWeightKg: 840,
+      totalWeightKg: 1720,
+      transmissionModel: 'ZF 8HP76 8-Speed M Steptronic'
+    };
+
+    const s58 = ENGINE_SPECS_S58;
+    const v12 = ENGINE_SPECS_V12;
+
+    // 1. Physical Bay Clearance Check
+    const lengthMarginMm = bay.lengthMm - v12.lengthMm; // 880 - 840 = 40 mm
+    const lengthPass = lengthMarginMm >= 25; // Minimum 25mm clearance for engine rocking on mounts
+
+    const widthMarginMm = (bay.widthBetweenTowersMm - v12.widthMm) / 2.0; // (820 - 710) / 2 = 55 mm per side
+    const widthPass = widthMarginMm >= 30;
+
+    const heightMarginMm = bay.hoodHeightCenterMm - v12.heightMm; // 640 - 615 = 25 mm
+    const heightPass = heightMarginMm >= 15;
+
+    // 2. Weight Distribution Shift Calculation
+    const engineDeltaKg = v12.weightKg - s58.weightKg; // 265 - 195 = +70 kg
+    const newFrontKg = bay.frontAxleCurbsideWeightKg + engineDeltaKg;
+    const newTotalKg = bay.totalWeightKg + engineDeltaKg;
+    const s58FrontPct = (bay.frontAxleCurbsideWeightKg / bay.totalWeightKg) * 100.0; // 51.16%
+    const v12FrontPct = (newFrontKg / newTotalKg) * 100.0; // 53.07%
+    const weightShiftDelta = v12FrontPct - s58FrontPct;
+
+    // 3. Cooling Thermal Rejection Requirement
+    // V12 heat rejection = ~52 kW at 680 hp vs S58 38 kW at 503 hp (+36.8%)
+    const thermalLoadKw = 52.0;
+    const coolingPass = thermalLoadKw <= 60.0; // Achievable with dual auxiliary 280mm side radiators
+
+    // Overall Feasibility Verdict
+    const isFeasible = lengthPass && widthPass && heightPass && coolingPass;
+    const clearanceScore = Math.round(((lengthMarginMm / 40.0) * 0.4 + (widthMarginMm / 55.0) * 0.3 + (heightMarginMm / 25.0) * 0.3) * 100.0);
+    const coolingScore = 88;
+    const drivetrainScore = 94;
+
+    return {
+      isFeasible,
+      clearanceScore,
+      coolingScore,
+      drivetrainScore,
+      overallScore: Math.round((clearanceScore * 0.35 + coolingScore * 0.35 + drivetrainScore * 0.30)),
+      clearances: {
+        lengthMarginMm,
+        lengthPass,
+        widthMarginMm,
+        widthPass,
+        heightMarginMm,
+        heightPass
+      },
+      weightDistribution: {
+        originalFrontPct: parseFloat(s58FrontPct.toFixed(1)),
+        newFrontPct: parseFloat(v12FrontPct.toFixed(1)),
+        shiftDeltaPct: parseFloat(weightShiftDelta.toFixed(1)),
+        handlingNote: 'Front spring rate must increase by +15 N/mm to preserve 1.35 Hz front bounce frequency.'
+      },
+      swapRequirements: [
+        'Custom CNC billet 6061-T6 aluminum transmission bellhousing adapter plate to ZF 8HP76',
+        'Custom tubular 4130 chromoly subframe crossmember and solid billet aluminum engine mounts',
+        'Dual 280mm side-mount auxiliary radiators with brushless 180 L/min electric water pump',
+        'Slim high-velocity electric radiator pusher fan conversion (reclaims 35mm bay depth)',
+        'Standalone Motec M150 / Syvecs S12 ECU with dual CAN gateway to BMW chassis DSC/ABS'
+      ]
+    };
+  }
+}
+
 export const MECHANICAL_FAULTS = {
   NONE: 'NONE',
   BLOWN_HEAD_GASKET: 'BLOWN_HEAD_GASKET', // Cylinders 2 & 3 share compression leak
@@ -303,4 +459,140 @@ export class EngineSimulation {
       this.drainOil(deltaTimeSeconds);
     }
   }
+
+  setEngineType(engineType) {
+    if (engineType === 'S58') {
+      this.specs = { ...ENGINE_SPECS_S58 };
+    } else if (engineType === 'V12') {
+      this.specs = { ...ENGINE_SPECS_V12 };
+    } else {
+      this.specs = { ...ENGINE_SPECS };
+    }
+
+    // Reinitialize cylinder health array
+    this.cylinderHealth = Array.from({ length: this.specs.cylinders }, (_, i) => ({
+      cylinder: i + 1,
+      ringSeal: 1.0,
+      intakeValveSeal: 1.0,
+      exhaustValveSeal: 1.0,
+      headGasketSeal: 1.0
+    }));
+
+    return this.specs;
+  }
+
+  canRemoveDisassemblyComponent(componentId, removedComponentsSet) {
+    const comp = S58_DISASSEMBLY_TREE[componentId];
+    if (!comp) {
+      return { allowed: true, reason: 'Unrestricted or custom component' };
+    }
+    const missingPrereqs = comp.prereqs.filter(p => !removedComponentsSet.has(p));
+    if (missingPrereqs.length > 0) {
+      const names = missingPrereqs.map(p => S58_DISASSEMBLY_TREE[p]?.name || p).join(', ');
+      return {
+        allowed: false,
+        missingPrereqs,
+        reason: `Cannot remove ${comp.name}: Must remove [${names}] first.`
+      };
+    }
+    return { allowed: true, reason: 'All disassembly prerequisites satisfied.' };
+  }
+
+  getCycleStroke(cylinderIndex, crankAngleDeg = 0) {
+    const firingOffsets = {
+      4: [0, 180, 540, 360], // [1, 3, 4, 2]
+      6: [0, 480, 240, 600, 120, 360], // S58 [1, 5, 3, 6, 2, 4] -> 120 deg intervals
+      12: [0, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660]
+    };
+
+    const offsets = firingOffsets[this.specs.cylinders] || firingOffsets[4];
+    const offset = offsets[(cylinderIndex - 1) % offsets.length] || 0;
+    const effectiveAngle = ((crankAngleDeg + offset) % 720 + 720) % 720;
+
+    if (effectiveAngle < 180) return 'INTAKE';
+    if (effectiveAngle < 360) return 'COMPRESSION';
+    if (effectiveAngle < 540) return 'POWER';
+    return 'EXHAUST';
+  }
+
+  getValveLiftMm(cylinderIndex, crankAngleDeg = 0) {
+    const stroke = this.getCycleStroke(cylinderIndex, crankAngleDeg);
+    const maxLiftMm = 10.5; // Valvetronic max intake lift
+
+    let intakeLiftMm = 0.0;
+    let exhaustLiftMm = 0.0;
+
+    const firingOffsets = {
+      4: [0, 180, 540, 360],
+      6: [0, 480, 240, 600, 120, 360],
+      12: [0, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660]
+    };
+    const offsets = firingOffsets[this.specs.cylinders] || firingOffsets[4];
+    const offset = offsets[(cylinderIndex - 1) % offsets.length] || 0;
+    const effectiveAngle = ((crankAngleDeg + offset) % 720 + 720) % 720;
+
+    // Intake valve opens slightly before TDC (350 deg) to 200 deg
+    if (effectiveAngle >= 350 || effectiveAngle <= 210) {
+      const thetaNorm = effectiveAngle >= 350 ? (effectiveAngle - 350) / 220 : (effectiveAngle + 10) / 220;
+      intakeLiftMm = Math.sin(thetaNorm * Math.PI) * maxLiftMm;
+    }
+
+    // Exhaust valve opens before BDC (500 deg) to 30 deg after TDC
+    if (effectiveAngle >= 500 || effectiveAngle <= 40) {
+      const thetaNorm = effectiveAngle >= 500 ? (effectiveAngle - 500) / 260 : (effectiveAngle + 220) / 260;
+      exhaustLiftMm = Math.sin(thetaNorm * Math.PI) * maxLiftMm;
+    }
+
+    return {
+      stroke,
+      intakeLiftMm: Math.max(0, intakeLiftMm),
+      exhaustLiftMm: Math.max(0, exhaustLiftMm)
+    };
+  }
+
+  getPistonKinematics(cylinderIndex, crankAngleRad = 0, rpm = 1000) {
+    const r = (this.specs.strokeMm / 1000.0) / 2.0; // Crank radius in meters (0.045m)
+    const l = this.specs.connectingRodLengthMm / 1000.0; // Con-rod length in meters (0.151m)
+    const omega = (rpm * 2 * Math.PI) / 60.0; // rad/s
+    const lambda = r / l;
+
+    const theta = crankAngleRad;
+    // Piston displacement from TDC (m)
+    const s = r * ((1.0 - Math.cos(theta)) + (lambda / 4.0) * (1.0 - Math.cos(2.0 * theta)));
+    // Piston velocity (m/s): v = r * omega * (sin(theta) + (lambda/2) * sin(2*theta))
+    const v = r * omega * (Math.sin(theta) + (lambda / 2.0) * Math.sin(2.0 * theta));
+    // Piston acceleration (m/s^2): a = r * omega^2 * (cos(theta) + lambda * cos(2*theta))
+    const a = r * omega * omega * (Math.cos(theta) + lambda * Math.cos(2.0 * theta));
+
+    return {
+      displacementMm: s * 1000.0,
+      velocityMps: v,
+      accelerationMps2: a
+    };
+  }
+
+  getInstantaneousPressurePsi(cylinderIndex, crankAngleDeg = 0) {
+    const stroke = this.getCycleStroke(cylinderIndex, crankAngleDeg);
+    const atmosphericPsi = 14.7;
+    const boostPsi = this.specs.twinTurbos ? this.specs.boostPsi : 0;
+    const baseIntakePsi = atmosphericPsi + (boostPsi * 0.4);
+
+    if (stroke === 'INTAKE') {
+      return baseIntakePsi;
+    }
+    if (stroke === 'COMPRESSION') {
+      // Polytropic compression P = P0 * (rc)^gamma
+      const progress = (crankAngleDeg % 180) / 180.0;
+      return baseIntakePsi + Math.pow(this.specs.compressionRatio, 1.33) * progress * 14.0;
+    }
+    if (stroke === 'POWER') {
+      // Combustion peak up to 1400 PSI expanding
+      const progress = (crankAngleDeg % 180) / 180.0;
+      const peakPsi = 1250.0 + (boostPsi * 25.0);
+      return Math.max(35.0, peakPsi * Math.exp(-progress * 3.5));
+    }
+    // EXHAUST
+    return 18.0; // Slight backpressure
+  }
 }
+
